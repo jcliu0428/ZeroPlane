@@ -1,5 +1,8 @@
 # ZeroPlane
-[CVPR 2025] Towards In-the-wild 3D Plane Reconstruction from a Single Image
+Official Implementation of **ZeroPlane** Towards In-the-wild 3D Plane Reconstruction from a Single Image (CVPR 2025 Highlight)
+
+<a href="https://arxiv.org/pdf/2506.02493"><img src="https://img.shields.io/badge/arXiv-2412.03451-b31b1b" alt="arXiv"></a> <a href="https://github.com/jcliu0428/ZeroPlane"><img src="https://img.shields.io/badge/Project_Page-green" alt="Project Page"></a> <a href=""><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a>
+
 
 ## 📖 Overview
 ![Zeroplane](imgs/teaser.png)
