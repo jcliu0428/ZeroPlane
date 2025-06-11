@@ -31,7 +31,7 @@ sh make.sh
 ```
 # download pretrained dust3r encoder
 cd third_party/dust3r
-mkdir checkpoints
+mkdir checkpoints && cd checkpoints
 wget https://download.europe.naverlabs.com/ComputerVision/DUSt3R/DUSt3R_ViTLarge_BaseDecoder_512_dpt.pth
 
 # download full-model checkpoint
