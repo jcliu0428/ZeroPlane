@@ -1,0 +1,14 @@
+_BASE_: ./R50_bs16_50ep.yaml
+MODEL:
+  BACKBONE:
+    NAME: "Dust3REncoderDecoder"
+  DUST3R:
+    MODEL_NAME: "naver/DUSt3R_ViTLarge_BaseDecoder_512_dpt"
+    FEATURES: 256
+    OUT_CHANNELS: [96, 192, 384, 768]
+  SEM_SEG_HEAD:
+    PIXEL_DECODER_NAME: "Dust3RDecoder"
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.120, 57.375]
+  MASK_FORMER:
+    SIZE_DIVISIBILITY: 16

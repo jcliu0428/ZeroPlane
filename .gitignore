@@ -1,0 +1,9 @@
+*.pth
+!cluster_anchor/*
+!demo/*
+*.pyc
+__pycache__
+ZeroPlane/modeling/pixel_decoder/ops/build
+ZeroPlane/modeling/pixel_decoder/ops/dist
+*.egg
+*.egg-info
