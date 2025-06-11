@@ -11,7 +11,7 @@ We present ZeroPlane, an end-to-end transformer-based framework on single-image 
 ## 🔨 Environment Installation
 ### 1. Git clone
 ```
-git clone https://github.com/ant-research/PlanarSplatting.git --recursive 
+git clone https://github.com/jcliu0428/ZeroPlane
 ```
 ### 2. Create a conda environment and install dependencies
 ```
@@ -19,8 +19,11 @@ git clone https://github.com/ant-research/PlanarSplatting.git --recursive
 conda env create -f environment.yml
 conda activate zeroplane
 
-# install pytorch under your cuda version
+# install pytorch under your GPU cuda version
 pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
+
+# install detectron2
+python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 
 # compile MSDeformAttn
 cd ZeroPlane/modeling/pixel_decoder/ops
