@@ -52,7 +52,6 @@ python demo/demo.py \
     --out ./demo/nyu_demo \
     --opts \
     MODEL.WEIGHTS ./checkpoints/dust3r_encoder_released.pth \
-    OUTPUT_DIR wild_data_vis/final_dust3r/nyuv2_dataset_final_test_vis \
     MODEL.MASK_FORMER.LEARN_NORMAL_CLS "True" \
     MODEL.MASK_FORMER.LEARN_OFFSET_CLS "True" \
     MODEL.MASK_FORMER.MIX_ANCHOR "True" \
