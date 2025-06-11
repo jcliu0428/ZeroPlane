@@ -68,3 +68,16 @@ python demo/demo.py \
 * [x] Demo code and pretrained model release.
 * [ ] Training and evaluation dataset.
 * [ ] Training code release. 
+*
+
+## 📜 Reference
+If you find this project useful or insightful, please consider citing:
+```
+@inproceedings{liu2025towards,
+  title={Towards In-the-wild 3D Plane Reconstruction from a Single Image},
+  author={Liu, Jiachen and Yu, Rui and Chen, Sili and Huang, Sharon X and Guo, Hengkai},
+  booktitle={Proceedings of the Computer Vision and Pattern Recognition Conference},
+  pages={27027--27037},
+  year={2025}
+}
+```
