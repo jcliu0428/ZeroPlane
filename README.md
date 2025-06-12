@@ -36,11 +36,11 @@ sh make.sh
 cd third_party/dust3r
 mkdir checkpoints && cd checkpoints
 wget https://download.europe.naverlabs.com/ComputerVision/DUSt3R/DUSt3R_ViTLarge_BaseDecoder_512_dpt.pth
+cd ../../..
 
 # download full-model checkpoint
 mkdir checkpoints && cd checkpoints
-wget https://www.dropbox.com/scl/fi/87f8s5pxcps54ocnr6pxe/dust3r_encoder_released.pth?rlkey=c9eenh0dul15rlt6ucpf3yx67&st=fo19yrg0&dl=0
-mv dust3r_encoder_released.pth?rlkey=c9eenh0dul15rlt6ucpf3yx67 dust3r_encoder_released.pth
+wget https://www.dropbox.com/scl/fi/87f8s5pxcps54ocnr6pxe/dust3r_encoder_released.pth?rlkey=c9eenh0dul15rlt6ucpf3yx67&st=fo19yrg0&dl=0 -O dust3r_encoder_released.pth
 ```
 
 ## 🔥 Getting Started
@@ -68,7 +68,7 @@ python demo/demo.py \
 * [x] Demo code and pretrained model release.
 * [ ] Training and evaluation dataset.
 * [ ] Training code release. 
-*
+* [ ] Gradio demo.
 
 ## 📜 Reference
 If you find this project useful or insightful, please consider citing:
