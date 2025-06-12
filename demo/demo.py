@@ -200,7 +200,7 @@ if __name__ == "__main__":
         # print(K_inv_dot_xy_1.shape)
         # exit(1)
 
-        for idx, path in tqdm.tqdm(enumrate(args.input), disable=not args.output):
+        for idx, path in tqdm.tqdm(enumerate(args.input), disable=not args.output):
             img_name = Path(path).stem
             img = read_image(path, format="RGB")
             img = cv2.resize(img, (256, 192))
