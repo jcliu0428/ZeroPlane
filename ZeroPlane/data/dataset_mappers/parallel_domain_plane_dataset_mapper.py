@@ -71,8 +71,6 @@ class SingleParallelDomainPlaneDatasetMapper():
         tfm_gens,
         image_format,
         predict_center,
-        use_partial_cluster,
-        use_outdoor_anchor,
         mix_anchor,
         normal_class_num,
         offset_class_num,
@@ -110,53 +108,44 @@ class SingleParallelDomainPlaneDatasetMapper():
 
         self.classify_inverse_offset = classify_inverse_offset
 
-        if not osp.exists('./cluster_anchor/new_indoor_mixed_normal_anchors_{}.npy'.format(normal_class_num)):
-            self.indoor_anchor_normals = np.load('./cluster_anchor/new_indoor_mixed_normal_anchors_7.npy')
-            self.outdoor_anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_7.npy')
+        # if not osp.exists('./cluster_anchor/new_indoor_mixed_normal_anchors_{}.npy'.format(normal_class_num)):
+        #     self.indoor_anchor_normals = np.load('./cluster_anchor/new_indoor_mixed_normal_anchors_7.npy')
+        #     self.outdoor_anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_7.npy')
 
-        else:
-            self.indoor_anchor_normals = np.load('./cluster_anchor/new_indoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-            self.outdoor_anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
+        # else:
+        #     self.indoor_anchor_normals = np.load('./cluster_anchor/new_indoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
+        #     self.outdoor_anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
 
-        if self.classify_inverse_offset:
-            raise NotImplementedError
+        # if self.classify_inverse_offset:
+        #     raise NotImplementedError
 
-        else:
-            if not osp.exists('./cluster_anchor/new_indoor_mixed_offset_anchors_{}.npy'.format(offset_class_num)):
-                self.indoor_anchor_offsets = np.load('./cluster_anchor/new_indoor_mixed_offset_anchors_20.npy')
-                self.outdoor_anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_20.npy')
+        # else:
+        #     if not osp.exists('./cluster_anchor/new_indoor_mixed_offset_anchors_{}.npy'.format(offset_class_num)):
+        #         self.indoor_anchor_offsets = np.load('./cluster_anchor/new_indoor_mixed_offset_anchors_20.npy')
+        #         self.outdoor_anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_20.npy')
 
-            else:
-                self.indoor_anchor_offsets = np.load('./cluster_anchor/new_indoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-                self.outdoor_anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-
-        self.use_outdoor_anchor = use_outdoor_anchor
+        #     else:
+        #         self.indoor_anchor_offsets = np.load('./cluster_anchor/new_indoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
+        #         self.outdoor_anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
 
         # else:
         if self.mix_anchor:
-            if use_partial_cluster:
-                self.anchor_normals = np.load('./cluster_anchor/partial_new_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-                self.anchor_offsets = np.load('./cluster_anchor/partial_new_mixed_offset_anchors_{}.npy'.format(offset_class_num))
+            if self.use_coupled_anchor:
+                self.anchor_normal_divide_offset = np.load('./cluster_anchor/new_mixed_normal_divide_offset_anchors_7.npy')
 
             else:
-                if self.use_coupled_anchor:
-                    self.anchor_normal_divide_offset = np.load('./cluster_anchor/new_mixed_normal_divide_offset_anchors_7.npy')
+                self.anchor_normals = np.load('./cluster_anchor/new_mixed_normal_anchors_{}.npy'.format(normal_class_num))
+                self.anchor_offsets = np.load('./cluster_anchor/new_mixed_offset_anchors_{}.npy'.format(offset_class_num))
 
-                else:
-                    self.anchor_normals = np.load('./cluster_anchor/new_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-                    self.anchor_offsets = np.load('./cluster_anchor/new_mixed_offset_anchors_{}.npy'.format(offset_class_num))
+        # elif use_outdoor_anchor:
+        #     self.anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
+        #     self.anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
 
-        elif use_outdoor_anchor:
-            self.anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-            self.anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
+        # else:
+        #     self.anchor_normals = np.load('./cluster_anchor/syn_normal_anchors_{}.npy'.format(normal_class_num))
+        #     self.anchor_offsets = np.load('./cluster_anchor/syn_offset_anchors_{}.npy'.format(offset_class_num))
 
-        else:
-            self.anchor_normals = np.load('./cluster_anchor/syn_normal_anchors_{}.npy'.format(normal_class_num))
-            self.anchor_offsets = np.load('./cluster_anchor/syn_offset_anchors_{}.npy'.format(offset_class_num))
-
-            print('Warning: Use Synthia anchors to test on PD dataset!')
-
-        self.canonical_focal = 250.0
+        #     print('Warning: Use Synthia anchors to test on PD dataset!')
 
         self.large_resolution_input = large_resolution_input
         self.large_resolution_eval = large_resolution_eval
@@ -174,8 +163,6 @@ class SingleParallelDomainPlaneDatasetMapper():
             "tfm_gens": tfm_gens,
             "image_format": cfg.INPUT.FORMAT, # RGB
             "predict_center": cfg.MODEL.MASK_FORMER.PREDICT_CENTER,
-            'use_partial_cluster': cfg.MODEL.MASK_FORMER.USE_PARTIAL_CLUSTER,
-            'use_outdoor_anchor': cfg.MODEL.MASK_FORMER.USE_OUTDOOR_ANCHOR,
             'mix_anchor': cfg.MODEL.MASK_FORMER.MIX_ANCHOR,
             'normal_class_num': cfg.MODEL.MASK_FORMER.NORMAL_CLS_NUM,
             'offset_class_num': cfg.MODEL.MASK_FORMER.OFFSET_CLS_NUM,
@@ -214,12 +201,6 @@ class SingleParallelDomainPlaneDatasetMapper():
             intrinsic[0] = intrinsic[0] * 640 / 256
             intrinsic[1] = intrinsic[1] * 480 / 192
 
-        # focal = intrinsic[0][0]
-        # focal_factor = self.canonical_focal / focal
-        # dataset_dict['focal_factor'] = torch.as_tensor(focal_factor)
-
-        dataset_dict['dataset_class'] = torch.as_tensor(1)
-
         image, transforms = T.apply_transform_gens(self.tfm_gens, image)
         image_shape = image.shape[:2]  # h, w
 
@@ -228,11 +209,11 @@ class SingleParallelDomainPlaneDatasetMapper():
         # Therefore it's important to use torch.Tensor.
         dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
 
-        dataset_dict['anchor_normals_indoor'] = torch.as_tensor(self.indoor_anchor_normals)
-        dataset_dict['anchor_offsets_indoor'] = torch.as_tensor(self.indoor_anchor_offsets)
+        # dataset_dict['anchor_normals_indoor'] = torch.as_tensor(self.indoor_anchor_normals)
+        # dataset_dict['anchor_offsets_indoor'] = torch.as_tensor(self.indoor_anchor_offsets)
 
-        dataset_dict['anchor_normals_outdoor'] = torch.as_tensor(self.outdoor_anchor_normals)
-        dataset_dict['anchor_offsets_outdoor'] = torch.as_tensor(self.outdoor_anchor_offsets)
+        # dataset_dict['anchor_normals_outdoor'] = torch.as_tensor(self.outdoor_anchor_normals)
+        # dataset_dict['anchor_offsets_outdoor'] = torch.as_tensor(self.outdoor_anchor_offsets)
 
         if self.use_coupled_anchor:
             dataset_dict['anchor_normal_divide_offset'] = torch.as_tensor(self.anchor_normal_divide_offset)

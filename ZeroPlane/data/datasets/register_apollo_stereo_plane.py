@@ -1,6 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import json
 import os
+import os.path as osp
 from os.path import join as pjoin
 
 from detectron2.data import DatasetCatalog, MetadataCatalog
@@ -44,7 +45,7 @@ def get_metadata(num = 167771):
 
 
 
-def load_single_apollo_stereo_plane_json(json_file):
+def load_single_apollo_stereo_plane_json(json_root, json_file):
     """
     Args:
         json_file (str): path to the json file. e.g., "~/coco/annotations/panoptic_train2017.json".
@@ -60,7 +61,8 @@ def load_single_apollo_stereo_plane_json(json_file):
     ret = []
     for ann in json_info["annotations"]:
         image_id = ann["image_id"]
-        npz_file = ann["npz_file_name"]
+        npz_file = osp.join(json_root, ann['npz_file_name'].split('/')[-1])
+        # npz_file = ann["npz_file_name"]
         segments_info = ann["segments_info"]
         ret.append(
             {
@@ -75,12 +77,12 @@ def load_single_apollo_stereo_plane_json(json_file):
     return ret
 
 
-def register_single_apollo_stereo_plane_annos_seg(name,  metadata, plane_seg_json):
+def register_single_apollo_stereo_plane_annos_seg(json_root, name,  metadata, plane_seg_json):
     plane_seg_name = "single_" + name
 
     DatasetCatalog.register(
         plane_seg_name,
-        lambda: load_single_apollo_stereo_plane_json(plane_seg_json),
+        lambda: load_single_apollo_stereo_plane_json(json_root, plane_seg_json),
     )
 
     MetadataCatalog.get(plane_seg_name).set(
@@ -101,6 +103,7 @@ def register_all_single_apollo_stereo_plane_annos_seg(json_root):
         plane_seg_json = pjoin(json_root, "apollo_stereo_plane_len" + str(num) + "_" + split + ".json")
 
         register_single_apollo_stereo_plane_annos_seg(
+            json_root,
             name,
             # get_metadata(),
             get_metadata(num=20), #! num_queries
@@ -109,7 +112,7 @@ def register_all_single_apollo_stereo_plane_annos_seg(json_root):
 
 
 
-_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "with_origin_img_plane_datasets"), 'with_high_res_depth_apollo_stereo_plane') # 26
+_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "datasets"), 'with_high_res_depth_apollo_stereo_plane') # 26
 register_all_single_apollo_stereo_plane_annos_seg(_root)
 
 

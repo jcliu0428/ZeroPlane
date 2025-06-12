@@ -1,6 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import json
 import os
+import os.path as osp
 import sys
 sys.path.append('./detectron2')
 
@@ -13,23 +14,14 @@ import random
 import cv2
 from matplotlib import pyplot as plt
 from detectron2.utils.visualizer import Visualizer
-# from panopticapi.utils import rgb2id, id2rgb
+
 import numpy as np
-# colors from coco categories, together with their nice-looking visualization colors
-# It's from https://github.com/cocodataset/panopticapi/blob/master/panoptic_coco_categories.json
-# COCO_CATEGORIES = [
-#     {"color": [220, 20, 60], "isthing": 1, "id": 1, "name": "person"},
-#     {"color": [119, 11, 32], "isthing": 1, "id": 2, "name": "bicycle"},
-#     {"color": [0, 0, 142], "isthing": 1, "id": 3, "name": "car"},
-#     ...,
-# ]
 from detectron2.data.datasets.builtin_meta import COCO_CATEGORIES
 
 PLANE_ID_COLORS = {}
 for i in range(len(COCO_CATEGORIES)):
     PLANE_ID_COLORS[i] = COCO_CATEGORIES[i]["color"]
 
-TRAIN_NUM = 356
 VAL_NUM = 356
 MAX_NUM_PLANES = 20
 
@@ -46,8 +38,7 @@ def get_metadata(num):
     return meta
 
 
-
-def load_single_parallel_domain_plane_json(json_file):
+def load_single_parallel_domain_plane_json(root, json_file):
     """
     Args:
         json_file (str): path to the json file. e.g., "~/coco/annotations/panoptic_train2017.json".
@@ -62,7 +53,8 @@ def load_single_parallel_domain_plane_json(json_file):
     ret = []
     for ann in json_info["annotations"]:
         image_id = ann["image_id"]
-        npz_file = ann["npz_file_name"]
+        npz_file = osp.join(root, ann['npz_file_name'].split('/')[-1])
+        # npz_file = ann["npz_file_name"]
         segments_info = ann["segments_info"]
 
         ret.append(
@@ -78,13 +70,13 @@ def load_single_parallel_domain_plane_json(json_file):
     return ret
 
 
-def register_single_parallel_domain_plane_annos_seg(name,  metadata, plane_seg_json):
+def register_single_parallel_domain_plane_annos_seg(root, name, metadata, plane_seg_json):
 
     plane_seg_name = "single_" + name
 
     DatasetCatalog.register(
         plane_seg_name,
-        lambda: load_single_parallel_domain_plane_json(plane_seg_json),
+        lambda: load_single_parallel_domain_plane_json(root, plane_seg_json),
     )
 
     MetadataCatalog.get(plane_seg_name).set(
@@ -99,19 +91,18 @@ def register_single_parallel_domain_plane_annos_seg(name,  metadata, plane_seg_j
 
 def register_all_single_parallel_domain_plane_annos_seg(json_root):
 
-    for split in ['train', 'val']:
-        name = "parallel_domain_plane_seg" + "_" + split
-        num = TRAIN_NUM if split == 'train' else VAL_NUM
-        plane_seg_json = os.path.join(json_root, "parallel_domain_plane_len" + str(num) + "_" + split + ".json")
+    name = "parallel_domain_plane_seg" + "_val"
+    num = VAL_NUM
+    plane_seg_json = os.path.join(json_root, "parallel_domain_plane_len" + str(num) + "_val" + ".json")
 
-        register_single_parallel_domain_plane_annos_seg(
-            name,
-            get_metadata(num=MAX_NUM_PLANES),  #! num_queries
-            plane_seg_json,
-        )
+    register_single_parallel_domain_plane_annos_seg(
+        json_root,
+        name,
+        get_metadata(num=MAX_NUM_PLANES),  #! num_queries
+        plane_seg_json,
+    )
 
-
-_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "with_origin_img_plane_datasets"), 'with_high_res_depth_parallel_domain_plane') # 26
+_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "datasets"), 'with_high_res_depth_parallel_domain_plane') # 26
 register_all_single_parallel_domain_plane_annos_seg(_root)
 
 
@@ -134,5 +125,4 @@ def plot_samples(dataset_name, n = 1):
 
 
 if __name__ == "__main__":
-
     plot_samples("single_parallel_domain_plane_seg_train", n = 3)

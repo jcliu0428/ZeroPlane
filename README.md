@@ -35,9 +35,9 @@ sh make.sh
 ### 3. Download pretrained checkpoints
 
 ```bash
-# download full-model checkpoint
+# download full-model checkpoint stored on huggingface
 mkdir checkpoints && cd checkpoints
-wget https://www.dropbox.com/scl/fi/87f8s5pxcps54ocnr6pxe/dust3r_encoder_released.pth?rlkey=c9eenh0dul15rlt6ucpf3yx67&st=fo19yrg0&dl=0 -O dust3r_encoder_released.pth
+wget https://huggingface.co/jcleo0428/ZeroPlane-Dust3R/resolve/main/dust3r_encoder_released.pth
 ```
 
 ## 🔥 Getting Started
@@ -61,9 +61,37 @@ python demo/demo.py \
     MODEL.MASK_FORMER.SEPARATE_PIXEL_ATTENTION "True" \
 ```
 
+### Download datasets
+```bash
+```
+
+## 📜 Evalution script
+```bash
+# evaluation on NYU-v2 testing set.
+python train_net.py \
+    --eval-only \
+    --num-gpus 1 \
+    --config-file configs/ZeroPlaneNYUV2/dust3r_large_dpt_bs16_50ep.yaml \
+    MODEL.WEIGHTS ./checkpoints/dust3r_encoder_released.pth \
+    OUTPUT_DIR ./visualizations/nyuv2_test_vis \
+    MODEL.MASK_FORMER.LEARN_NORMAL_CLS "True" \
+    MODEL.MASK_FORMER.LEARN_OFFSET_CLS "True" \
+    MODEL.MASK_FORMER.MIX_ANCHOR "True" \
+    MODEL.MASK_FORMER.NORMAL_CLS_NUM 7 \
+    MODEL.MASK_FORMER.PREDICT_GLOBAL_PIXEL_DEPTH "True" \
+    MODEL.MASK_FORMER.PREDICT_GLOBAL_PIXEL_NORMAL "True" \
+    MODEL.MASK_FORMER.WITH_PIXEL_NORMAL_ATTENTION "True" \
+    MODEL.MASK_FORMER.WITH_PIXEL_DEPTH_ATTENTION "True" \
+    MODEL.MASK_FORMER.SEPARATE_PIXEL_ATTENTION "True" \
+    INPUT.LARGE_RESOLUTION_INPUT "False" \ # whether to apply large-res input
+    INPUT.LARGE_RESOLUTION_EVAL "False" \ # whether to apply large-res evaluation
+    TEST.NO_VIS "True" # whether to save visualizations to OUTPUT_DIR
+```
+
+
 ## 🚀 Release Plan
 * [x] Github created **[2025.03.24]**
-* [x] Demo code and pretrained model release.
+* [x] Demo & evaluation code and pretrained model release.
 * [ ] Training and evaluation dataset.
 * [ ] Training code release. 
 * [ ] Gradio demo.

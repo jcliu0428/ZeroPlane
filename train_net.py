@@ -54,20 +54,11 @@ from detectron2.utils.logger import setup_logger
 from ZeroPlane import (
     PlaneSegEvaluator,
     SingleScannetv1PlaneDatasetMapper,
-    SingleScannetPlaneRCNNPlaneDatasetMapper,
-    SingleReplicaHM3dPlaneDatasetMapper,
-    SingleDIODEPlaneDatasetMapper,
     SingleSevenScenesPlaneDatasetMapper,
-    SingleTaskonomyPlaneDatasetMapper,
-    SingleMP3dPlaneDatasetMapper,
     SingleNYUv2PlaneDatasetMapper,
     SingleMixedPlaneDatasetMapper,
-    SingleSYNPlaneDatasetMapper,
-    SingleVKITTIPlaneDatasetMapper,
-    SingleApolloStereoPlaneDatasetMapper,
-    SingleKITTIPlaneDatasetMapper,
     SingleParallelDomainPlaneDatasetMapper,
-    SingleSanpoSyntheticPlaneDatasetMapper,
+    SingleApolloStereoPlaneDatasetMapper,
     SingleWildDataPlaneDatasetMapper,
     SemanticSegmentorWithTTA,
     add_ZeroPlane_config,
@@ -154,6 +145,7 @@ class Trainer(DefaultTrainer):
                     dataset_name, evaluator_type
                 )
             )
+
         elif len(evaluator_list) == 1:
             return evaluator_list[0]
 
@@ -164,50 +156,8 @@ class Trainer(DefaultTrainer):
         if cfg.INPUT.DATASET_MAPPER_NAME == "scannetv1_plane":
             mapper = SingleScannetv1PlaneDatasetMapper(cfg, True)
 
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'scannet_planercnn_plane':
-            mapper = SingleScannetPlaneRCNNPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'replica_hm3d_plane':
-            mapper = SingleReplicaHM3dPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'diode_plane':
-            mapper = SingleDIODEPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'sevenscenes_plane':
-            mapper = SingleSevenScenesPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'taskonomy_plane':
-            mapper = SingleTaskonomyPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == "nyuv2_plane":
-            mapper = SingleNYUv2PlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'apollo_stereo_plane':
-            mapper = SingleApolloStereoPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'syn_plane':
-            mapper = SingleSYNPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'vkitti_plane':
-            mapper = SingleVKITTIPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'mp3d_plane':
-            mapper = SingleMP3dPlaneDatasetMapper(cfg, True)
-
         elif cfg.INPUT.DATASET_MAPPER_NAME == 'mixed_plane':
             mapper = SingleMixedPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'raw_kitti_plane':
-            mapper = SingleKITTIPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'parallel_domain_plane':
-            mapper = SingleParallelDomainPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'sanpo_synthetic_plane':
-            mapper = SingleSanpoSyntheticPlaneDatasetMapper(cfg, True)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'wild_data_plane':
-            mapper = SingleWildDataPlaneDatasetMapper(cfg, True)
 
         else:
             mapper = None
@@ -220,20 +170,8 @@ class Trainer(DefaultTrainer):
         if cfg.INPUT.DATASET_MAPPER_NAME == "scannetv1_plane":
             mapper = SingleScannetv1PlaneDatasetMapper(cfg, is_train=False)
 
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'scannet_planercnn_plane':
-            mapper = SingleScannetPlaneRCNNPlaneDatasetMapper(cfg, is_train=False)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'replica_hm3d_plane':
-            mapper = SingleReplicaHM3dPlaneDatasetMapper(cfg, is_train=False)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'diode_plane':
-            mapper = SingleDIODEPlaneDatasetMapper(cfg, is_train=False)
-
         elif cfg.INPUT.DATASET_MAPPER_NAME == 'sevenscenes_plane':
             mapper = SingleSevenScenesPlaneDatasetMapper(cfg, is_train=False)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'taskonomy_plane':
-            mapper = SingleTaskonomyPlaneDatasetMapper(cfg, is_train=False)
 
         elif cfg.INPUT.DATASET_MAPPER_NAME == "nyuv2_plane":
             mapper = SingleNYUv2PlaneDatasetMapper(cfg, is_train=False)
@@ -241,26 +179,8 @@ class Trainer(DefaultTrainer):
         elif cfg.INPUT.DATASET_MAPPER_NAME == 'apollo_stereo_plane':
             mapper = SingleApolloStereoPlaneDatasetMapper(cfg, is_train=False)
 
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'syn_plane':
-            mapper = SingleSYNPlaneDatasetMapper(cfg, is_train=False)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'vkitti_plane':
-            mapper = SingleVKITTIPlaneDatasetMapper(cfg, is_train=False)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'mp3d_plane':
-            mapper = SingleMP3dPlaneDatasetMapper(cfg, is_train=False)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'mixed_plane':
-            mapper = SingleMixedPlaneDatasetMapper(cfg, is_train=False)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'raw_kitti_plane':
-            mapper = SingleKITTIPlaneDatasetMapper(cfg, is_train=False)
-
         elif cfg.INPUT.DATASET_MAPPER_NAME == 'parallel_domain_plane':
             mapper = SingleParallelDomainPlaneDatasetMapper(cfg, is_train=False)
-
-        elif cfg.INPUT.DATASET_MAPPER_NAME == 'sanpo_synthetic_plane':
-            mapper = SingleSanpoSyntheticPlaneDatasetMapper(cfg, is_train=False)
 
         elif cfg.INPUT.DATASET_MAPPER_NAME == 'wild_data_plane':
             mapper = SingleWildDataPlaneDatasetMapper(cfg, is_train=False)

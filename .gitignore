@@ -8,3 +8,5 @@ ZeroPlane/modeling/pixel_decoder/ops/dist
 *.egg
 *.egg-info
 demo/nyu_demo
+datasets/
+visualizations/

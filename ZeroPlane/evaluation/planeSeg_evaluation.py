@@ -17,7 +17,6 @@ from detectron2.utils.file_io import PathManager
 
 from detectron2.evaluation.evaluator import DatasetEvaluator
 
-
 _CV2_IMPORTED = True
 try:
     import cv2  # noqa
@@ -29,14 +28,12 @@ from ..utils.disp import (
     visualizationBatch,
     plot_depth_recall_curve,
     plot_normal_recall_curve,
-    plot_offset_recall_curve,
     labelcolormap
 )
 from ..utils.metrics import (
     evaluateMasks,
     eval_plane_recall_depth,
     eval_plane_recall_normal,
-    eval_plane_recall_offset,
 )
 from ..utils.metrics_de import evaluateDepths
 
@@ -87,7 +84,7 @@ class PlaneSegEvaluator(DatasetEvaluator):
             self.max_depth = 30
 
         elif 'outdoor_mixed' in dataset_name or 'mixed' in dataset_name or 'apollo_stereo' in dataset_name \
-            or 'raw_kitti' in dataset_name or 'syn' in dataset_name or 'vkitti' in dataset_name or 'parallel_domain' in dataset_name \
+            or 'syn' in dataset_name or 'vkitti' in dataset_name or 'parallel_domain' in dataset_name \
             or 'sanpo_synthetic' in dataset_name:
             self.max_depth = 100
 
@@ -115,11 +112,7 @@ class PlaneSegEvaluator(DatasetEvaluator):
         self.pixelNorm_recall_curve = np.zeros((13))
         self.planeNorm_recall_curve = np.zeros((13, 3))
 
-        self.pixelOff_recall_curve = np.zeros((13))
-        self.planeOff_recall_curve = np.zeros((13, 3))
-
         self.bestmatch_normal_errors = []
-        self.bestmatch_offset_errors = []
 
         self.depth_estimation_metrics = np.zeros((8))  # rel, rel_sqr, log10, rmse, rmse_log, accuracy_1, accuracy_2, accuracy_3
         self.plane_depth_from_pixel_estimation_metrics = np.zeros((8))
@@ -140,84 +133,6 @@ class PlaneSegEvaluator(DatasetEvaluator):
         a_depth = depth * scale
 
         return a_depth, scale
-
-    def try_vis_mask_uncert(self, image_path, image, pred_seg, mask_uncert_maps,
-                            pred_planar_mask, gt_planar_mask):
-
-        masks = []
-        for plane_idx in range(mask_uncert_maps.shape[0]):
-            mask = pred_seg == plane_idx
-            mask_uncert_map = 1 - mask_uncert_maps[plane_idx]
-
-            mask_vis = (np.stack([mask, mask, mask], axis=-1) * 255).astype(np.uint8)
-            mask_uncert_vis = (np.stack([mask_uncert_map, mask_uncert_map, mask_uncert_map], axis=-1) / np.max(mask_uncert_map) * 255).astype(np.uint8)
-
-            mask_vis = mask_vis * 0.8 + image * 0.2
-            mask_uncert_vis = mask_uncert_vis * 0.8 + image * 0.2
-
-            vis = np.hstack([image, mask_vis, mask_uncert_vis])
-
-            os.makedirs(f'{self.dataset_name}_mask_uncert_vis/{image_path}', exist_ok=True)
-            cv2.imwrite(f'{self.dataset_name}_mask_uncert_vis/{image_path}/mask_uncert_map_{plane_idx}.png', vis)
-
-        segmentation = pred_seg.copy() # 20 indicates non-plane
-        segmentation += 1
-        segmentation[segmentation >= 21] = 0 # 21 <- num_queries + 1
-
-        colors = labelcolormap(256)
-        # ***************  get color segmentation
-        seg = np.stack([colors[segmentation, 0], colors[segmentation, 1], colors[segmentation, 2]], axis=2)
-        # ***************  get blend image
-        blend_seg = (seg * 0.7 + image * 0.3).astype(np.uint8)
-        seg_mask = (segmentation > 0).astype(np.uint8)
-        seg_mask = seg_mask[:, :, np.newaxis]
-        blend_seg = blend_seg * seg_mask + image.astype(np.uint8) * (1 - seg_mask)
-        # ***************  save
-        blend_seg_path = osp.join(f'{self.dataset_name}_mask_uncert_vis', f'{image_path}/seg_vis.png')
-        cv2.imwrite(blend_seg_path, blend_seg)
-
-        return
-
-    def try_vis_offset_conf(self, image_path, image, pred_seg, conf_map,
-                            pred_pixel_offset, gt_pixel_offset, pred_planar_mask, gt_planar_mask):
-
-        masks = []
-        for plane_idx in range(conf_map.shape[0]):
-            mask = pred_seg == plane_idx
-            mask_conf_map = conf_map[plane_idx]
-
-            mask_vis = (np.stack([mask, mask, mask], axis=-1) * 255).astype(np.uint8)
-            mask_conf_vis = (np.stack([mask_conf_map, mask_conf_map, mask_conf_map], axis=-1) / np.max(mask_conf_map) * 255).astype(np.uint8)
-
-            mask_vis = mask_vis * 0.8 + image * 0.2
-            mask_conf_vis = mask_conf_vis * 0.8 + image * 0.2
-
-            vis = np.hstack([image, mask_vis, mask_conf_vis])
-
-            os.makedirs(f'scannet_offset_conf_map_vis/{image_path}', exist_ok=True)
-            cv2.imwrite(f'scannet_offset_conf_map_vis/{image_path}/conf_map_{plane_idx}.png', vis)
-
-        segmentation = pred_seg.copy() # 20 indicates non-plane
-        segmentation += 1
-        segmentation[segmentation >= 21] = 0 # 21 <- num_queries + 1
-
-        colors = labelcolormap(256)
-        # ***************  get color segmentation
-        seg = np.stack([colors[segmentation, 0], colors[segmentation, 1], colors[segmentation, 2]], axis=2)
-        # ***************  get blend image
-        blend_seg = (seg * 0.7 + image * 0.3).astype(np.uint8)
-        seg_mask = (segmentation > 0).astype(np.uint8)
-        seg_mask = seg_mask[:, :, np.newaxis]
-        blend_seg = blend_seg * seg_mask + image.astype(np.uint8) * (1 - seg_mask)
-        # ***************  save
-        blend_seg_path = os.path.join('scannet_offset_conf_map_vis', '{}/seg_vis.png'.format(image_path))
-        cv2.imwrite(blend_seg_path, blend_seg)
-
-        pred_offset_vis, gt_offset_vis = self.vis_offset(pred_pixel_offset, gt_pixel_offset, pred_planar_mask, gt_planar_mask)
-        offset_save_path = os.path.join('scannet_offset_conf_map_vis', '{}/offset_vis.png'.format(image_path))
-        cv2.imwrite(offset_save_path, np.hstack([pred_offset_vis, gt_offset_vis]))
-
-        return
 
     def process(self, inputs, outputs):
         """
@@ -241,18 +156,9 @@ class PlaneSegEvaluator(DatasetEvaluator):
 
             plane_from_pixel_depth = output["planes_depth_from_pixel_depth"].to(self._cpu_device).numpy()
 
-            # offset_conf_map = output['offset_conf_map']
-            # if offset_conf_map is not None:
-            #     offset_conf_map = offset_conf_map.to(self._cpu_device).numpy()
-
-            # mask_uncert_map = output['mask_uncert_map']
-            # if mask_uncert_map is not None:
-            #     mask_uncert_map = mask_uncert_map.to(self._cpu_device).numpy()
-
             k_inv_dot_xy1 = output['K_inv_dot_xy_1'].cpu().numpy()
 
             pred_global_pixel_normal = output['global_pixel_normal']
-            pred_global_pixel_offset = output['global_pixel_offset']
 
             gt_filename = input["npz_file_name"]
             npz_data = np.load(gt_filename)
@@ -264,7 +170,7 @@ class PlaneSegEvaluator(DatasetEvaluator):
                 else:
                     gt_raw_depth = npz_data["raw_depth"]
 
-                if 'segmentation' in npz_data.files and not 'oasis' in self.dataset_name:
+                if 'segmentation' in npz_data.files:
                     gt = npz_data["segmentation"]
                     gt_params = npz_data["plane"]
 
@@ -279,14 +185,6 @@ class PlaneSegEvaluator(DatasetEvaluator):
                         gt_raw_depth = cv2.resize(gt_raw_depth, (640, 480), interpolation=cv2.INTER_NEAREST)
                         gt_plane_depth = cv2.resize(gt_plane_depth, (640, 480), interpolation=cv2.INTER_NEAREST)
 
-                    gt_global_pixel_offset = None
-
-                    if 'gt_global_pixel_offset' in input.keys() and pred_global_pixel_offset is not None:
-                        gt_global_pixel_offset = input['gt_global_pixel_offset'].cpu().numpy()
-
-                    else:
-                        gt_global_pixel_offset = None
-
                     gt_global_pixel_normal = input['gt_global_pixel_normal']
 
             if self.vis:
@@ -294,11 +192,11 @@ class PlaneSegEvaluator(DatasetEvaluator):
                     image = npz_data['raw_image']
 
                 else:
-                    image = npz_data["image"] #BGR
+                    image = npz_data["image"]  #BGR
 
                 file_name = os.path.split(input["npz_file_name"])[-1].split(".")[0]
 
-                if 'segmentation' in npz_data.files and not 'oasis' in self.dataset_name:
+                if 'segmentation' in npz_data.files:
                     # gt_raw_depth = npz_data['raw_depth']
                     self.max_gt_depths.append(np.percentile(gt_raw_depth, 90))
 
@@ -308,7 +206,6 @@ class PlaneSegEvaluator(DatasetEvaluator):
                     'depth_predplane': plane_depth,
                     'pixeldepth_predplane': plane_from_pixel_depth,
                     'K_inv_dot_xy_1': k_inv_dot_xy1,
-                    'pixel_offset': pred_global_pixel_offset,
                     'pixel_normal': pred_global_pixel_normal
                 })
 
@@ -317,14 +214,12 @@ class PlaneSegEvaluator(DatasetEvaluator):
 
                 self.file_names.append(file_name)
 
-                if 'segmentation' in npz_data.files and not 'oasis' in self.dataset_name:
-                    # if not 'raw_kitti' in self.dataset_name and not 'oasis' in self.dataset_name:
+                if 'segmentation' in npz_data.files:
                     self.gt_vis_dicts.append({
                         'image': image,
                         'segmentation': gt,
                         'depth_GTplane': gt_plane_depth,
                         'K_inv_dot_xy_1': k_inv_dot_xy1,
-                        'pixel_offset': gt_global_pixel_offset,
                         'pixel_normal': gt_global_pixel_normal,
                         'pixel_depth': gt_raw_depth
                         })
@@ -338,13 +233,6 @@ class PlaneSegEvaluator(DatasetEvaluator):
 
                 if self.eval_scale_aligned_depth:
                     plane_depth, _ = self.align_depth_scale(plane_depth, gt_raw_depth, max_depth=self.max_depth)
-
-                if 'raw_kitti' in self.dataset_name:
-                    self.depth_estimation_metrics += evaluateDepths(plane_depth, gt_raw_depth, pred, None, None, False, max_depth=self.max_depth)
-                    self.plane_depth_from_pixel_estimation_metrics += evaluateDepths(plane_from_pixel_depth, gt_raw_depth, pred, None, None, False, max_depth=self.max_depth)
-                    self.pixel_depth_estimation_metrics += evaluateDepths(seg_depth, gt_raw_depth, pred, None, None, False, max_depth=self.max_depth)
-
-                    continue
 
                 self.RI_VI_SC.append(evaluateMasks(pred, gt, device = "cuda",  pred_non_plane_idx = self._num_planes+1, gt_non_plane_idx=self._num_planes, printInfo=False))
 
@@ -368,19 +256,11 @@ class PlaneSegEvaluator(DatasetEvaluator):
                 self.pixelNorm_recall_curve += pixel_recall
                 self.planeNorm_recall_curve += plane_recall
 
-                # 3 evaluation: plane offset
-                instance_param = valid_params.cpu().numpy()
-                plane_recall, pixel_recall = eval_plane_recall_offset(pred, gt, instance_param, gt_params)
-
-                self.pixelOff_recall_curve += pixel_recall
-                self.planeOff_recall_curve += plane_recall
-
                 instance_param = valid_params.numpy()
 
                 try:
-                    normal_error, offset_error = eval_plane_bestmatch_normal_offset(instance_param, gt_params)
+                    normal_error, _ = eval_plane_bestmatch_normal_offset(instance_param, gt_params)
                     self.bestmatch_normal_errors.append(normal_error)
-                    self.bestmatch_offset_errors.append(offset_error)
 
                 except:
                     print('warning: the normal error and offset error contain nan, skip...')
@@ -396,7 +276,6 @@ class PlaneSegEvaluator(DatasetEvaluator):
                 os.makedirs(vis_path)
 
             if self.vis:
-
                 if (self.test_data_num - 1) % self.vis_period == 0:
 
                     if len(self.max_gt_depths) > 0:
@@ -428,48 +307,31 @@ class PlaneSegEvaluator(DatasetEvaluator):
                             pred_normal_vis, _ = self.vis_normal(pred_pixel_normal, None)
                             pred_vis = np.hstack([pred_vis, pred_normal_vis])
 
-                        pred_pixel_offset = self.vis_dicts[-1]['pixel_offset']
                         pred_planar_mask = self.vis_dicts[-1]['segmentation'] != 20
-
-                        if pred_pixel_offset is not None:
-                            pred_offset_vis, _ = self.vis_offset(pred_pixel_offset, None, pred_planar_mask, None)
-                            pred_vis = np.hstack([pred_vis, pred_offset_vis])
 
                         pred_pixel_depth = cv2.imread(osp.join(vis_path, str(self.file_names[-1]) + '_pixel_depth_pred.png'))
                         if pred_pixel_depth is not None:
                             pred_vis = np.hstack([pred_vis, pred_pixel_depth])
 
                         if len(self.gt_vis_dicts) > 0:
-                            # if not self.infer_only:
-                            if not 'raw_kitti' in self.dataset_name:
-                                img = cv2.imread(osp.join(vis_path, str(self.file_names[-1]) + '_image.png'))
-                                seg_gt = cv2.imread(osp.join(vis_path, str(self.file_names[-1]) + '_seg_gt_blend.png'))
-                                depth_gt = cv2.imread(osp.join(vis_path, str(self.file_names[-1]) + '_depth_GTplane_gt.png'))
+                            img = cv2.imread(osp.join(vis_path, str(self.file_names[-1]) + '_image.png'))
+                            seg_gt = cv2.imread(osp.join(vis_path, str(self.file_names[-1]) + '_seg_gt_blend.png'))
+                            depth_gt = cv2.imread(osp.join(vis_path, str(self.file_names[-1]) + '_depth_GTplane_gt.png'))
 
-                                gt_vis = np.hstack([img, seg_gt, depth_gt])
+                            gt_vis = np.hstack([img, seg_gt, depth_gt])
 
-                                if pred_pixel_normal is not None:
-                                    gt_pixel_normal = self.gt_vis_dicts[-1]['pixel_normal']
+                            if pred_pixel_normal is not None:
+                                gt_pixel_normal = self.gt_vis_dicts[-1]['pixel_normal']
 
-                                    _, gt_normal_vis = self.vis_normal(pred_pixel_normal, gt_pixel_normal)
-                                    gt_vis = np.hstack([gt_vis, gt_normal_vis])
+                                _, gt_normal_vis = self.vis_normal(pred_pixel_normal, gt_pixel_normal)
+                                gt_vis = np.hstack([gt_vis, gt_normal_vis])
 
-                                if pred_pixel_offset is not None:
-                                    gt_pixel_offset = self.gt_vis_dicts[-1]['pixel_offset']
-                                    gt_planar_mask = self.gt_vis_dicts[-1]['segmentation'] != 20
+                            if pred_pixel_depth is not None:
+                                gt_pixel_depth = cv2.imread(osp.join(vis_path, str(self.file_names[-1]) + '_pixel_depth_gt.png'))
+                                gt_vis = np.hstack([gt_vis, gt_pixel_depth])
 
-                                    _, gt_offset_vis = self.vis_offset(None, gt_pixel_offset, None, gt_planar_mask)
-                                    gt_vis = np.hstack([gt_vis, gt_offset_vis])
-
-                                if pred_pixel_depth is not None:
-                                    gt_pixel_depth = cv2.imread(osp.join(vis_path, str(self.file_names[-1]) + '_pixel_depth_gt.png'))
-                                    gt_vis = np.hstack([gt_vis, gt_pixel_depth])
-
-                                if pred_vis.shape == gt_vis.shape:
-                                    vis_all = np.vstack([pred_vis, (np.ones((10, gt_vis.shape[1], 3)) * 255).astype(np.uint8), gt_vis])
-
-                                else:
-                                    vis_all = pred_vis
+                            if pred_vis.shape == gt_vis.shape:
+                                vis_all = np.vstack([pred_vis, (np.ones((10, gt_vis.shape[1], 3)) * 255).astype(np.uint8), gt_vis])
 
                             else:
                                 vis_all = pred_vis
@@ -478,30 +340,6 @@ class PlaneSegEvaluator(DatasetEvaluator):
                             vis_all = pred_vis
 
                         cv2.imwrite(osp.join(vis_path, str(self.file_names[-1]) + '_all.png'), vis_all)
-
-    def vis_offset(self, pred_offset_map, gt_offset_map, pred_planar_mask, gt_planar_mask):
-        if pred_offset_map is not None:
-            pred_vis = np.stack([pred_offset_map, pred_offset_map, pred_offset_map], axis=-1)
-            pred_vis = (255 - pred_vis / np.max(pred_offset_map) * 255).astype(np.uint8)
-            pred_vis = cv2.applyColorMap(pred_vis, cv2.COLORMAP_JET)
-
-            # mask out gt invalid area
-            pred_vis[pred_planar_mask == 0] = 0
-
-        else:
-            pred_vis = np.zeros((192, 256, 3)).astype(np.uint8)
-
-        if gt_offset_map is not None:
-            gt_vis = np.stack([gt_offset_map, gt_offset_map, gt_offset_map], axis=-1)
-            gt_vis = (255 - gt_vis / np.max(gt_offset_map) * 255).astype(np.uint8)
-            gt_vis = cv2.applyColorMap(gt_vis, cv2.COLORMAP_JET)
-
-            gt_vis[gt_planar_mask == 0] = 0
-
-        else:
-            gt_vis = np.zeros((192, 256, 3)).astype(np.uint8)
-
-        return pred_vis, gt_vis
 
     def vis_normal(self, pred_normal_map, gt_normal_map):
         if pred_normal_map is not None:
@@ -613,12 +451,7 @@ class PlaneSegEvaluator(DatasetEvaluator):
                                 pred_normal_vis, _ = self.vis_normal(pred_pixel_normal, None)
                                 pred_vis = np.hstack([pred_vis, pred_normal_vis])
 
-                            pred_pixel_offset = self.vis_dicts[i]['pixel_offset']
                             pred_planar_mask = self.vis_dicts[i]['segmentation'] != 20
-
-                            if pred_pixel_offset is not None:
-                                pred_offset_vis, _ = self.vis_offset(pred_pixel_offset, None, pred_planar_mask, None)
-                                pred_vis = np.hstack([pred_vis, pred_offset_vis])
 
                             pred_pixel_depth = cv2.imread(osp.join(vis_path, str(self.file_names[i]) + '_pixel_depth_pred.png'))
                             if pred_pixel_depth is not None:
@@ -638,13 +471,6 @@ class PlaneSegEvaluator(DatasetEvaluator):
 
                                         _, gt_normal_vis = self.vis_normal(pred_pixel_normal, gt_pixel_normal)
                                         gt_vis = np.hstack([gt_vis, gt_normal_vis])
-
-                                    if pred_pixel_offset is not None:
-                                        gt_pixel_offset = self.gt_vis_dicts[i]['pixel_offset']
-                                        gt_planar_mask = self.gt_vis_dicts[i]['segmentation'] != 20
-
-                                        _, gt_offset_vis = self.vis_offset(None, gt_pixel_offset, None, gt_planar_mask)
-                                        gt_vis = np.hstack([gt_vis, gt_offset_vis])
 
                                     if pred_pixel_depth is not None:
                                         gt_pixel_depth = cv2.imread(osp.join(vis_path, str(self.file_names[i]) + '_pixel_depth_gt.png'))
@@ -670,81 +496,61 @@ class PlaneSegEvaluator(DatasetEvaluator):
                     if not os.path.exists(recall_curve_save_path):
                         os.makedirs(recall_curve_save_path)
 
-                    mine_recalls_pixel = {"PlaneRecTR (Ours)": self.pixelDepth_recall_curve_of_GTpd / len(self.RI_VI_SC) * 100}
-                    mine_recalls_plane = {"PlaneRecTR (Ours)": self.planeDepth_recall_curve_of_GTpd[:, 0] / self.planeDepth_recall_curve_of_GTpd[:, 1] * 100}
+                    mine_recalls_pixel = {"zeroplane": self.pixelDepth_recall_curve_of_GTpd / len(self.RI_VI_SC) * 100}
+                    mine_recalls_plane = {"zeroplane": self.planeDepth_recall_curve_of_GTpd[:, 0] / self.planeDepth_recall_curve_of_GTpd[:, 1] * 100}
 
                     if self.eval_indoor:
-                        res['per_pixel_depth_01'] = mine_recalls_pixel["PlaneRecTR (Ours)"][2]
-                        res['per_pixel_depth_06'] = mine_recalls_pixel["PlaneRecTR (Ours)"][-1]
+                        res['per_pixel_depth_01'] = mine_recalls_pixel["zeroplane"][2]
+                        res['per_pixel_depth_06'] = mine_recalls_pixel["zeroplane"][-1]
 
-                        res['per_plane_depth_005'] = mine_recalls_plane["PlaneRecTR (Ours)"][1]
-                        res['per_plane_depth_01'] = mine_recalls_plane["PlaneRecTR (Ours)"][2]
-                        res['per_plane_depth_06'] = mine_recalls_plane["PlaneRecTR (Ours)"][-1]
+                        res['per_plane_depth_005'] = mine_recalls_plane["zeroplane"][1]
+                        res['per_plane_depth_01'] = mine_recalls_plane["zeroplane"][2]
+                        res['per_plane_depth_06'] = mine_recalls_plane["zeroplane"][-1]
 
                     else:
-                        res['per_pixel_depth_1'] = mine_recalls_pixel["PlaneRecTR (Ours)"][1]
-                        res['per_pixel_depth_10'] = mine_recalls_pixel["PlaneRecTR (Ours)"][-3]
+                        res['per_pixel_depth_1'] = mine_recalls_pixel["zeroplane"][1]
+                        res['per_pixel_depth_10'] = mine_recalls_pixel["zeroplane"][-3]
 
-                        res['per_plane_depth_1'] = mine_recalls_plane["PlaneRecTR (Ours)"][1]
-                        res['per_plane_depth_3'] = mine_recalls_plane["PlaneRecTR (Ours)"][3]
-                        res['per_plane_depth_10'] = mine_recalls_plane["PlaneRecTR (Ours)"][-3]
+                        res['per_plane_depth_1'] = mine_recalls_plane["zeroplane"][1]
+                        res['per_plane_depth_3'] = mine_recalls_plane["zeroplane"][3]
+                        res['per_plane_depth_10'] = mine_recalls_plane["zeroplane"][-3]
 
-                    # print("mine_recalls_pixel (pred_planed vs gt_planed)", mine_recalls_pixel)
-                    # print("mine_recalls_plane (pred_planed vs gt_planed)", mine_recalls_plane)
                     plot_depth_recall_curve(mine_recalls_pixel, type='pixel (pred_planed vs gt_planed)', save_path=recall_curve_save_path)
                     plot_depth_recall_curve(mine_recalls_plane, type='plane (pred_planed vs gt_planed)', save_path=recall_curve_save_path)
 
-                    mine_recalls_plane_frompixel = {"PlaneRecTR (Ours)": self.plane_frompixel_Depth_recall_curve_of_GTpd[:, 0] / self.plane_frompixel_Depth_recall_curve_of_GTpd[:, 1] * 100}
+                    mine_recalls_plane_frompixel = {"zeroplane": self.plane_frompixel_Depth_recall_curve_of_GTpd[:, 0] / self.plane_frompixel_Depth_recall_curve_of_GTpd[:, 1] * 100}
 
                     if self.eval_indoor:
-                        res['per_plane_frompixel_depth_005'] = mine_recalls_plane_frompixel["PlaneRecTR (Ours)"][1]
-                        res['per_plane_frompixel_depth_01'] = mine_recalls_plane_frompixel["PlaneRecTR (Ours)"][2]
-                        res['per_plane_frompixel_depth_06'] = mine_recalls_plane_frompixel["PlaneRecTR (Ours)"][-1]
+                        res['per_plane_frompixel_depth_005'] = mine_recalls_plane_frompixel["zeroplane"][1]
+                        res['per_plane_frompixel_depth_01'] = mine_recalls_plane_frompixel["zeroplane"][2]
+                        res['per_plane_frompixel_depth_06'] = mine_recalls_plane_frompixel["zeroplane"][-1]
                     else:
-                        res['per_plane_frompixel_depth_1'] = mine_recalls_plane_frompixel["PlaneRecTR (Ours)"][1]
-                        res['per_plane_frompixel_depth_3'] = mine_recalls_plane_frompixel["PlaneRecTR (Ours)"][3]
-                        res['per_plane_frompixel_depth_10'] = mine_recalls_plane_frompixel["PlaneRecTR (Ours)"][-3]
+                        res['per_plane_frompixel_depth_1'] = mine_recalls_plane_frompixel["zeroplane"][1]
+                        res['per_plane_frompixel_depth_3'] = mine_recalls_plane_frompixel["zeroplane"][3]
+                        res['per_plane_frompixel_depth_10'] = mine_recalls_plane_frompixel["zeroplane"][-3]
 
-                    normal_recalls_pixel = {"PlaneRecTR": self.pixelNorm_recall_curve / len(self.RI_VI_SC) * 100}
-                    normal_recalls_plane = {"PlaneRecTR": self.planeNorm_recall_curve[:, 0] / self.planeNorm_recall_curve[:, 1] * 100}
+                    normal_recalls_pixel = {"zeroplane": self.pixelNorm_recall_curve / len(self.RI_VI_SC) * 100}
+                    normal_recalls_plane = {"zeroplane": self.planeNorm_recall_curve[:, 0] / self.planeNorm_recall_curve[:, 1] * 100}
 
-                    res['per_pixel_normal_5'] = normal_recalls_pixel["PlaneRecTR"][2]
-                    res['per_pixel_normal_30'] = normal_recalls_pixel["PlaneRecTR"][-1]
+                    res['per_pixel_normal_5'] = normal_recalls_pixel["zeroplane"][2]
+                    res['per_pixel_normal_30'] = normal_recalls_pixel["zeroplane"][-1]
 
-                    res['per_plane_normal_5'] = normal_recalls_plane["PlaneRecTR"][2]
-                    res['per_plane_normal_10'] = normal_recalls_plane["PlaneRecTR"][4]
-                    res['per_plane_normal_30'] = normal_recalls_plane["PlaneRecTR"][-1]
+                    res['per_plane_normal_5'] = normal_recalls_plane["zeroplane"][2]
+                    res['per_plane_normal_10'] = normal_recalls_plane["zeroplane"][4]
+                    res['per_plane_normal_30'] = normal_recalls_plane["zeroplane"][-1]
 
-                    # print("normal_recalls_pixel", normal_recalls_pixel)
-                    # print("normal_recalls_plane", normal_recalls_plane)
                     plot_normal_recall_curve(normal_recalls_pixel, type='pixel', save_path=recall_curve_save_path)
                     plot_normal_recall_curve(normal_recalls_plane, type='plane', save_path=recall_curve_save_path)
 
-                    offset_recalls_pixel = {"PlaneRecTR": self.pixelOff_recall_curve / len(self.RI_VI_SC) * 100}
-                    offset_recalls_plane = {"PlaneRecTR": self.planeOff_recall_curve[:, 0] / self.planeOff_recall_curve[:, 1] * 100}
-                    res['per_pixel_offset_17'] = offset_recalls_pixel["PlaneRecTR"][2]
-                    res['per_pixel_offset_100'] = offset_recalls_pixel["PlaneRecTR"][-1]
-                    res['per_plane_offset_17'] = offset_recalls_plane["PlaneRecTR"][2]
-                    res['per_plane_offset_100'] = offset_recalls_plane["PlaneRecTR"][-1]
-
-                    # print("offset_recalls_pixel", offset_recalls_pixel)
-                    # print("offset_recalls_plane", offset_recalls_plane)
-                    plot_offset_recall_curve(offset_recalls_pixel, type='pixel', save_path=recall_curve_save_path)
-                    plot_offset_recall_curve(offset_recalls_plane, type='plane', save_path=recall_curve_save_path)
-
                     res["mean_normal_error"] = np.mean(self.bestmatch_normal_errors)
-                    res["mean_offset_error"] = np.mean(self.bestmatch_offset_errors)
-
                     res['median_normal_error'] = np.median(self.bestmatch_normal_errors)
-                    res['median_offset_error'] = np.median(self.bestmatch_offset_errors)
+
+        results = OrderedDict({"sem_seg": res})
 
         if not self.infer_only:
-            file_path = pjoin(self._output_dir, "sem_seg_evaluation.pth")
-            with PathManager.open(file_path, "wb") as f:
-                torch.save(res, f)
-
-            results = OrderedDict({"sem_seg": res})
-            self._logger.info(results)
+            # file_path = pjoin(self._output_dir, "sem_seg_evaluation.pth")
+            # with PathManager.open(file_path, "wb") as f:
+            #     torch.save(res, f)
 
             for k, val in res.items():
                 # if 'per_pixel_offset' in k or 'per_plane_offset' in k:

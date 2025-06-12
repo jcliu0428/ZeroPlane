@@ -121,7 +121,7 @@ class SingleNYUv2PlaneDatasetMapper():
         ret = {
             "is_train": is_train,
             "tfm_gens": tfm_gens,
-            "image_format": cfg.INPUT.FORMAT, # RGB
+            "image_format": cfg.INPUT.FORMAT,  # RGB
             'normal_class_num': cfg.MODEL.MASK_FORMER.NORMAL_CLS_NUM,
             'offset_class_num': cfg.MODEL.MASK_FORMER.OFFSET_CLS_NUM,
             'use_coupled_anchor': cfg.MODEL.MASK_FORMER.USE_COUPLED_ANCHOR,
@@ -162,8 +162,6 @@ class SingleNYUv2PlaneDatasetMapper():
         if not self.large_resolution_eval:
             intrinsic[0] = intrinsic[0] * 256 / 640
             intrinsic[1] = intrinsic[1] * 192 / 480
-
-        dataset_dict['dataset_class'] = torch.as_tensor(1)
 
         image, transforms = T.apply_transform_gens(self.tfm_gens, image)
         image_shape = image.shape[:2]  # h, w

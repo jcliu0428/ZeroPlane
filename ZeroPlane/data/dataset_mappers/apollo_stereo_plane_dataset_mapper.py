@@ -106,15 +106,15 @@ class SingleApolloStereoPlaneDatasetMapper():
 
         self.classify_inverse_offset = classify_inverse_offset
 
-        self.indoor_anchor_normals = np.load('./cluster_anchor/new_indoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-        self.outdoor_anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
+        # self.indoor_anchor_normals = np.load('./cluster_anchor/new_indoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
+        # self.outdoor_anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
 
-        if self.classify_inverse_offset:
-            raise NotImplementedError
+        # if self.classify_inverse_offset:
+        #     raise NotImplementedError
 
-        else:
-            self.indoor_anchor_offsets = np.load('./cluster_anchor/new_indoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-            self.outdoor_anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
+        # else:
+        #     self.indoor_anchor_offsets = np.load('./cluster_anchor/new_indoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
+        #     self.outdoor_anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
 
         self.use_outdoor_anchor = use_outdoor_anchor
 
@@ -209,11 +209,11 @@ class SingleApolloStereoPlaneDatasetMapper():
         # Therefore it's important to use torch.Tensor.
         dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
 
-        dataset_dict['anchor_normals_indoor'] = torch.as_tensor(self.indoor_anchor_normals)
-        dataset_dict['anchor_offsets_indoor'] = torch.as_tensor(self.indoor_anchor_offsets)
+        # dataset_dict['anchor_normals_indoor'] = torch.as_tensor(self.indoor_anchor_normals)
+        # dataset_dict['anchor_offsets_indoor'] = torch.as_tensor(self.indoor_anchor_offsets)
 
-        dataset_dict['anchor_normals_outdoor'] = torch.as_tensor(self.outdoor_anchor_normals)
-        dataset_dict['anchor_offsets_outdoor'] = torch.as_tensor(self.outdoor_anchor_offsets)
+        # dataset_dict['anchor_normals_outdoor'] = torch.as_tensor(self.outdoor_anchor_normals)
+        # dataset_dict['anchor_offsets_outdoor'] = torch.as_tensor(self.outdoor_anchor_offsets)
 
         # else:
         dataset_dict['anchor_normals'] = torch.as_tensor(self.anchor_normals)
