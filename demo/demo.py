@@ -4,6 +4,7 @@ import argparse
 import glob
 import multiprocessing as mp
 import os
+from pathlib import Path
 
 # fmt: off
 import sys
@@ -199,7 +200,8 @@ if __name__ == "__main__":
         # print(K_inv_dot_xy_1.shape)
         # exit(1)
 
-        for path in tqdm.tqdm(args.input, disable=not args.output):
+        for idx, path in tqdm.tqdm(enumrate(args.input), disable=not args.output):
+            img_name = Path(path).stem
             img = read_image(path, format="RGB")
             img = cv2.resize(img, (256, 192))
 
@@ -238,7 +240,7 @@ if __name__ == "__main__":
 
                 os.makedirs(args.output, exist_ok=True)
 
-                visualizationBatch(root_path=args.output, idx="", info="", data_dict=vis_dicts,
+                visualizationBatch(root_path=args.output, idx=str(idx), info=img_name, data_dict=vis_dicts,
                                    num_queries=cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES,
                                    save_image=True,
                                    save_segmentation=True,

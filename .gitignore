@@ -7,3 +7,4 @@ ZeroPlane/modeling/pixel_decoder/ops/build
 ZeroPlane/modeling/pixel_decoder/ops/dist
 *.egg
 *.egg-info
+demo/nyu_demo
