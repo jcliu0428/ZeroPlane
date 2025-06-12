@@ -39,7 +39,6 @@ sh make.sh
 mkdir checkpoints && cd checkpoints
 wget https://www.dropbox.com/scl/fi/87f8s5pxcps54ocnr6pxe/dust3r_encoder_released.pth?rlkey=c9eenh0dul15rlt6ucpf3yx67&st=fo19yrg0&dl=0 -O dust3r_encoder_released.pth
 ```
-```
 
 ## 🔥 Getting Started
 For a quick demo to infer our plane reconstruction on a specified image, please refer to this script:
