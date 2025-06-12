@@ -10,20 +10,22 @@ We present ZeroPlane, an end-to-end transformer-based framework on single-image 
 
 ## 🔨 Environment Installation
 ### 1. Git clone
-```
+
+```bash
 git clone https://github.com/jcliu0428/ZeroPlane
 ```
 ### 2. Create a conda environment and install dependencies
-```
+
+```bash
 # create conda and install all packages
 conda env create -f environment.yml
 conda activate zeroplane
 
 # install pytorch under your GPU cuda version
-pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
+pip3 install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
 
 # install detectron2
-python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
+python3 -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 
 # compile MSDeformAttn
 cd ZeroPlane/modeling/pixel_decoder/ops
@@ -31,21 +33,17 @@ sh make.sh
 ```
 
 ### 3. Download pretrained checkpoints
-```
-# download pretrained dust3r encoder
-cd third_party/dust3r
-mkdir checkpoints && cd checkpoints
-wget https://download.europe.naverlabs.com/ComputerVision/DUSt3R/DUSt3R_ViTLarge_BaseDecoder_512_dpt.pth
 
+```bash
 # download full-model checkpoint
 mkdir checkpoints && cd checkpoints
-wget https://www.dropbox.com/scl/fi/87f8s5pxcps54ocnr6pxe/dust3r_encoder_released.pth?rlkey=c9eenh0dul15rlt6ucpf3yx67&st=fo19yrg0&dl=0
-mv dust3r_encoder_released.pth?rlkey=c9eenh0dul15rlt6ucpf3yx67 dust3r_encoder_released.pth
+wget https://www.dropbox.com/scl/fi/87f8s5pxcps54ocnr6pxe/dust3r_encoder_released.pth?rlkey=c9eenh0dul15rlt6ucpf3yx67&st=fo19yrg0&dl=0 -O dust3r_encoder_released.pth
 ```
 
 ## 🔥 Getting Started
 For a quick demo to infer our plane reconstruction on a specified image, please refer to this script:
-```
+
+```bash
 python demo/demo.py \
     --config-file configs/ZeroPlaneNYUV2/dust3r_large_dpt_bs16_50ep.yaml \
     --input ./demo/0_d2_image.png \
@@ -68,7 +66,7 @@ python demo/demo.py \
 * [x] Demo code and pretrained model release.
 * [ ] Training and evaluation dataset.
 * [ ] Training code release. 
-*
+* [ ] Gradio demo.
 
 ## 📜 Reference
 If you find this project useful or insightful, please consider citing:
