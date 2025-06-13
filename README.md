@@ -99,7 +99,7 @@ python train_net.py \
 
 ## 🚀 Release Plan
 * [x] Github created **[2025.03.24]**
-* [x] Demo & evaluation code and pretrained model release.
+* [x] Demo & evaluation code and pretrained model release. **[2025.06.12]**
 * [ ] Training and evaluation dataset.
 * [ ] Training code release. 
 * [ ] Gradio demo.
