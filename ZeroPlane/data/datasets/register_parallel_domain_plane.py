@@ -102,7 +102,7 @@ def register_all_single_parallel_domain_plane_annos_seg(json_root):
         plane_seg_json,
     )
 
-_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "datasets"), 'with_high_res_depth_parallel_domain_plane') # 26
+_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "datasets"), 'parallel_domain_plane') # 26
 register_all_single_parallel_domain_plane_annos_seg(_root)
 
 

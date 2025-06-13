@@ -102,7 +102,7 @@ def register_all_single_nyuv2_plane_annos_seg(json_root):
             plane_seg_json,
         )
 
-_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "datasets"), 'with_high_res_depth_nyuv2_plane')
+_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "datasets"), 'nyuv2_plane')
 register_all_single_nyuv2_plane_annos_seg(_root)
 
 

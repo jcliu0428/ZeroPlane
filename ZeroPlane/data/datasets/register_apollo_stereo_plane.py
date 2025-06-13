@@ -112,7 +112,7 @@ def register_all_single_apollo_stereo_plane_annos_seg(json_root):
 
 
 
-_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "datasets"), 'with_high_res_depth_apollo_stereo_plane') # 26
+_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "datasets"), 'apollo_stereo_plane') # 26
 register_all_single_apollo_stereo_plane_annos_seg(_root)
 
 

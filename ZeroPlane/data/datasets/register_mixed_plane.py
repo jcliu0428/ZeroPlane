@@ -114,7 +114,7 @@ def register_all_single_mixed_plane_annos_seg(json_root):
             plane_seg_json,
         )
 
-_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "with_origin_img_plane_datasets"), 'mixed_datasets') # 26
+_root = os.path.join(os.getenv("DETECTRON2_DATASETS", "datasets"), 'mixed_datasets') # 26
 register_all_single_mixed_plane_annos_seg(_root)
 
 
