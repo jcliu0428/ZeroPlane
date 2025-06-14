@@ -56,32 +56,6 @@ def get_coordinate_map(K, device, h=192, w=256, oh=480, ow=640):
 
     return k_inv_dot_xy_1
 
-# def resize_image(img):
-#     h, w = img.shape[:2]
-#     if w/h == 1.5:
-#         re_img = cv2.resize(img, (256, 192))
-
-#     elif w/h > 1.5:
-#         re_w = 256
-#         re_h = int(re_w/w*h)
-#         pad_h = 192-re_h
-#         pad_h1 = int(pad_h/2)
-#         pad_h2 = pad_h - pad_h1
-#         re_img = cv2.resize(img, (re_w, re_h))
-#         re_img = cv2.copyMakeBorder(re_img, top = pad_h1, bottom = pad_h2, left = 0, right = 0,
-#                                     borderType = cv2.BORDER_CONSTANT, value = 0)
-#     else:
-#         re_h = 192
-#         re_w = int(re_h/h*w)
-#         pad_w = 256-re_w
-#         pad_w1 = int(pad_w/2)
-#         pad_w2 = pad_w - pad_w1
-#         re_img = cv2.resize(img, (re_w, re_h))
-#         re_img = cv2.copyMakeBorder(re_img, top = 0, bottom = 0, left = pad_w1, right = pad_w2,
-#                                     borderType = cv2.BORDER_CONSTANT, value = 0)
-
-#     return re_img
-
 
 def setup_cfg(args):
     # load config from file and command-line arguments
@@ -191,31 +165,36 @@ if __name__ == "__main__":
         #     [0, 0, 1]]
         # )
 
+        # specify the input intrinsic corresponding to (origin_w, origin_h) image size.
         K = np.asarray([[518.86, 0, 325.58],
                         [0, 519.47, 253.74],
                         [0, 0, 1]])
 
-        k_inv_dot_xy_1 = get_coordinate_map(K, torch.device("cpu"), h=192, w=256, oh=args.original_h, ow=args.original_w).numpy()
-        k_inv_dot_xy_1 = torch.tensor(k_inv_dot_xy_1).to(cfg.MODEL.DEVICE)
-        # print(K_inv_dot_xy_1.shape)
-        # exit(1)
+        # k_inv_dot_xy_1 = get_coordinate_map(K, torch.device("cpu"), h=192, w=256, oh=args.original_h, ow=args.original_w).numpy()
+        # k_inv_dot_xy_1 = torch.tensor(k_inv_dot_xy_1).to(cfg.MODEL.DEVICE)
+
+        # print(k_inv_dot_xy_1.shape)
 
         for idx, path in tqdm.tqdm(enumerate(args.input), disable=not args.output):
             img_name = Path(path).stem
             img = read_image(path, format="RGB")
-            img = cv2.resize(img, (256, 192))
+
+            img_h, img_w = img.shape[:2]
+
+            k_inv_dot_xy_1 = get_coordinate_map(K, torch.device("cpu"), h=img_h, w=img_w, oh=args.original_h, ow=args.original_w).numpy()
+            k_inv_dot_xy_1 = torch.tensor(k_inv_dot_xy_1).to(cfg.MODEL.DEVICE)
+
+            # img = cv2.resize(img, (256, 192))
 
             start_time = time.time()
             predictions = demo.run_on_image(img, anchors, k_inv_dot_xy_1)
 
-            print(predictions.keys())
+            print('predictions:', predictions.keys())
             # exit(1)
 
             sem_seg = predictions["sem_seg"].argmax(dim=0).cpu() # torch.Size([192, 256]) # sem_seg 21, 192, 256
             pred = np.array(sem_seg, dtype=int)  # (192, 256)
             plane_depth = predictions["planes_depth"].cpu().numpy()
-
-            print(sem_seg.shape, pred.shape, plane_depth.shape)
 
             # K = [[args.fx, 0, args.ox],
             # [0, args.fy, args.oy],
@@ -227,8 +206,8 @@ if __name__ == "__main__":
                         'depth_predplane': plane_depth,
                         # Calculate K_inv * xy1, taking into account that the image has been scaled (oh/ow->h/w),
                         # and if there are any other image processing steps, they should be included in the calculation.
-                        'K_inv_dot_xy_1': get_coordinate_map(K, torch.device("cpu"), h=192, w=256, oh=args.original_h, ow=args.original_w).numpy(),
-                    }
+                        'K_inv_dot_xy_1': k_inv_dot_xy_1.cpu().numpy()
+            }
 
             if args.output:
                 # if os.path.isdir(args.output):
