@@ -86,6 +86,7 @@ python train_net.py \
 * [ ] Training code release. 
 * [ ] Gradio demo.
 
+
 ## 📜 Reference
 If you find this project useful or insightful, please consider citing:
 ```
@@ -97,3 +98,13 @@ If you find this project useful or insightful, please consider citing:
   year={2025}
 }
 ```
+
+
+## 🙏 Acknowledgement
+ZeroPlane is built based on a couple of outstanding open-sourced projects. We truly appreciate their great work and well-organized codebase, which provide tremendous support and inspiration during the process of our implementation:
+
+- [PlaneRecTR](https://github.com/graphdeco-inria/gaussian-splatting)
+- [Mask2Former](https://github.com/facebookresearch/Mask2Former)
+- [Depth Anything](https://depth-anything.github.io/)
+- [Dust3R](https://github.com/naver/dust3r)
+- [DPT](https://github.com/isl-org/DPT)
