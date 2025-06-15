@@ -127,6 +127,20 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--resize_w",
+        type=int,
+        default=256,
+        help="resize image width before feeding into the model",
+    )
+
+    parser.add_argument(
+        "--resize_h",
+        type=int,
+        default=192,
+        help="resize image height before feeding into the model",
+    )
+
+    parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
         default=[],
@@ -170,27 +184,17 @@ if __name__ == "__main__":
                         [0, 519.47, 253.74],
                         [0, 0, 1]])
 
-        # k_inv_dot_xy_1 = get_coordinate_map(K, torch.device("cpu"), h=192, w=256, oh=args.original_h, ow=args.original_w).numpy()
-        # k_inv_dot_xy_1 = torch.tensor(k_inv_dot_xy_1).to(cfg.MODEL.DEVICE)
-
-        # print(k_inv_dot_xy_1.shape)
-
         for idx, path in tqdm.tqdm(enumerate(args.input), disable=not args.output):
             img_name = Path(path).stem
             img = read_image(path, format="RGB")
 
-            img_h, img_w = img.shape[:2]
+            img = cv2.resize(img, (args.resize_w, args.resize_h)) # please resize to a smaller resolution if you encounter memory issues
 
-            k_inv_dot_xy_1 = get_coordinate_map(K, torch.device("cpu"), h=img_h, w=img_w, oh=args.original_h, ow=args.original_w).numpy()
+            k_inv_dot_xy_1 = get_coordinate_map(K, torch.device("cpu"), h=args.resize_h, w=args.resize_w, oh=args.original_h, ow=args.original_w).numpy()
             k_inv_dot_xy_1 = torch.tensor(k_inv_dot_xy_1).to(cfg.MODEL.DEVICE)
-
-            # img = cv2.resize(img, (256, 192))
 
             start_time = time.time()
             predictions = demo.run_on_image(img, anchors, k_inv_dot_xy_1)
-
-            print('predictions:', predictions.keys())
-            # exit(1)
 
             sem_seg = predictions["sem_seg"].argmax(dim=0).cpu() # torch.Size([192, 256]) # sem_seg 21, 192, 256
             pred = np.array(sem_seg, dtype=int)  # (192, 256)
@@ -210,13 +214,6 @@ if __name__ == "__main__":
             }
 
             if args.output:
-                # if os.path.isdir(args.output):
-                #     output_root = args.output
-
-                # else:
-                #     assert len(args.input) == 1, "Please specify a directory with args.output"
-                #     output_root = os.path.split(args.output)[0]
-
                 os.makedirs(args.output, exist_ok=True)
 
                 visualizationBatch(root_path=args.output, idx=str(idx), info=img_name, data_dict=vis_dicts,

@@ -154,8 +154,6 @@ class PlaneSegEvaluator(DatasetEvaluator):
             seg_depth = output["seg_depth"].to(self._cpu_device).numpy()
             valid_params = output["valid_params"].to(self._cpu_device)
 
-            plane_from_pixel_depth = output["planes_depth_from_pixel_depth"].to(self._cpu_device).numpy()
-
             k_inv_dot_xy1 = output['K_inv_dot_xy_1'].cpu().numpy()
 
             pred_global_pixel_normal = output['global_pixel_normal']
@@ -204,7 +202,6 @@ class PlaneSegEvaluator(DatasetEvaluator):
                     'image': image,
                     'segmentation': pred,
                     'depth_predplane': plane_depth,
-                    'pixeldepth_predplane': plane_from_pixel_depth,
                     'K_inv_dot_xy_1': k_inv_dot_xy1,
                     'pixel_normal': pred_global_pixel_normal
                 })
@@ -244,10 +241,10 @@ class PlaneSegEvaluator(DatasetEvaluator):
                 self.pixelDepth_recall_curve_of_GTpd += np.array(pixelStatistics)
                 self.planeDepth_recall_curve_of_GTpd += np.array(planeStatistics)
 
-                _, plane_frompixel_Statistics = eval_plane_recall_depth(
-                    pred, gt, plane_from_pixel_depth, gt_plane_depth, valid_plane_num, eval_indoor=self.eval_indoor
-                )
-                self.plane_frompixel_Depth_recall_curve_of_GTpd += np.array(plane_frompixel_Statistics)
+                # _, plane_frompixel_Statistics = eval_plane_recall_depth(
+                #     pred, gt, plane_from_pixel_depth, gt_plane_depth, valid_plane_num, eval_indoor=self.eval_indoor
+                # )
+                # self.plane_frompixel_Depth_recall_curve_of_GTpd += np.array(plane_frompixel_Statistics)
 
                 # 2 evaluation: plane segmentation
                 instance_param = valid_params.cpu().numpy()
@@ -267,7 +264,7 @@ class PlaneSegEvaluator(DatasetEvaluator):
 
                 # if "nyuv2_plane" in self._dataset_name or "apollo" in self._dataset_name:
                 self.depth_estimation_metrics += evaluateDepths(plane_depth, gt_raw_depth, pred, gt, None, False, max_depth=self.max_depth)
-                self.plane_depth_from_pixel_estimation_metrics += evaluateDepths(plane_from_pixel_depth, gt_raw_depth, pred, gt, None, False, max_depth=self.max_depth)
+                # self.plane_depth_from_pixel_estimation_metrics += evaluateDepths(plane_from_pixel_depth, gt_raw_depth, pred, gt, None, False, max_depth=self.max_depth)
                 self.pixel_depth_estimation_metrics += evaluateDepths(seg_depth, gt_raw_depth, pred, gt, None, False, max_depth=self.max_depth)
 
         if self._output_dir:
@@ -393,9 +390,9 @@ class PlaneSegEvaluator(DatasetEvaluator):
                 res["pixel_DE_rel"], res["pixel_DE_rel_sqr"], res["pixel_DE_log10"], res["pixel_DE_rmse"], \
                 res["pixel_DE_rmse_log"], res["pixel_DE_accuracy_1"], res["pixel_DE_accuracy_2"], res["pixel_DE_accuracy_3"] = res_pixel_depth_estimation_metrics
 
-                res_plane_depth_from_pixel_estimation_metrics = self.plane_depth_from_pixel_estimation_metrics / len(self.RI_VI_SC)
-                res["plane_from_pixel_DE_rel"], res["plane_from_pixel_DE_rel_sqr"], res["plane_from_pixel_DE_log10"], res["plane_from_pixel_DE_rmse"], \
-                res["plane_from_pixel_DE_rmse_log"], res["plane_from_pixel_DE_accuracy_1"], res["plane_from_pixel_DE_accuracy_2"], res["plane_from_pixel_DE_accuracy_3"] = res_plane_depth_from_pixel_estimation_metrics
+                # res_plane_depth_from_pixel_estimation_metrics = self.plane_depth_from_pixel_estimation_metrics / len(self.RI_VI_SC)
+                # res["plane_from_pixel_DE_rel"], res["plane_from_pixel_DE_rel_sqr"], res["plane_from_pixel_DE_log10"], res["plane_from_pixel_DE_rmse"], \
+                # res["plane_from_pixel_DE_rmse_log"], res["plane_from_pixel_DE_accuracy_1"], res["plane_from_pixel_DE_accuracy_2"], res["plane_from_pixel_DE_accuracy_3"] = res_plane_depth_from_pixel_estimation_metrics
 
             else:
                 res_depth_estimation_metrics = self.depth_estimation_metrics / self.test_data_num
@@ -406,9 +403,9 @@ class PlaneSegEvaluator(DatasetEvaluator):
                 res["pixel_DE_rel"], res["pixel_DE_rel_sqr"], res["pixel_DE_log10"], res["pixel_DE_rmse"], \
                 res["pixel_DE_rmse_log"], res["pixel_DE_accuracy_1"], res["pixel_DE_accuracy_2"], res["pixel_DE_accuracy_3"] = res_pixel_depth_estimation_metrics
 
-                res_plane_depth_from_pixel_estimation_metrics = self.plane_depth_from_pixel_estimation_metrics / self.test_data_num
-                res["plane_from_pixel_DE_rel"], res["plane_from_pixel_DE_rel_sqr"], res["plane_from_pixel_DE_log10"], res["plane_from_pixel_DE_rmse"], \
-                res["plane_from_pixel_DE_rmse_log"], res["plane_from_pixel_DE_accuracy_1"], res["plane_from_pixel_DE_accuracy_2"], res["plane_from_pixel_DE_accuracy_3"] = res_plane_depth_from_pixel_estimation_metrics
+                # res_plane_depth_from_pixel_estimation_metrics = self.plane_depth_from_pixel_estimation_metrics / self.test_data_num
+                # res["plane_from_pixel_DE_rel"], res["plane_from_pixel_DE_rel_sqr"], res["plane_from_pixel_DE_log10"], res["plane_from_pixel_DE_rmse"], \
+                # res["plane_from_pixel_DE_rmse_log"], res["plane_from_pixel_DE_accuracy_1"], res["plane_from_pixel_DE_accuracy_2"], res["plane_from_pixel_DE_accuracy_3"] = res_plane_depth_from_pixel_estimation_metrics
 
         if self._output_dir:
 
@@ -518,16 +515,17 @@ class PlaneSegEvaluator(DatasetEvaluator):
                     plot_depth_recall_curve(mine_recalls_pixel, type='pixel (pred_planed vs gt_planed)', save_path=recall_curve_save_path)
                     plot_depth_recall_curve(mine_recalls_plane, type='plane (pred_planed vs gt_planed)', save_path=recall_curve_save_path)
 
-                    mine_recalls_plane_frompixel = {"zeroplane": self.plane_frompixel_Depth_recall_curve_of_GTpd[:, 0] / self.plane_frompixel_Depth_recall_curve_of_GTpd[:, 1] * 100}
+                    # mine_recalls_plane_frompixel = {"zeroplane": self.plane_frompixel_Depth_recall_curve_of_GTpd[:, 0] / self.plane_frompixel_Depth_recall_curve_of_GTpd[:, 1] * 100}
 
-                    if self.eval_indoor:
-                        res['per_plane_frompixel_depth_005'] = mine_recalls_plane_frompixel["zeroplane"][1]
-                        res['per_plane_frompixel_depth_01'] = mine_recalls_plane_frompixel["zeroplane"][2]
-                        res['per_plane_frompixel_depth_06'] = mine_recalls_plane_frompixel["zeroplane"][-1]
-                    else:
-                        res['per_plane_frompixel_depth_1'] = mine_recalls_plane_frompixel["zeroplane"][1]
-                        res['per_plane_frompixel_depth_3'] = mine_recalls_plane_frompixel["zeroplane"][3]
-                        res['per_plane_frompixel_depth_10'] = mine_recalls_plane_frompixel["zeroplane"][-3]
+                    # if self.eval_indoor:
+                    #     res['per_plane_frompixel_depth_005'] = mine_recalls_plane_frompixel["zeroplane"][1]
+                    #     res['per_plane_frompixel_depth_01'] = mine_recalls_plane_frompixel["zeroplane"][2]
+                    #     res['per_plane_frompixel_depth_06'] = mine_recalls_plane_frompixel["zeroplane"][-1]
+
+                    # else:
+                    #     res['per_plane_frompixel_depth_1'] = mine_recalls_plane_frompixel["zeroplane"][1]
+                    #     res['per_plane_frompixel_depth_3'] = mine_recalls_plane_frompixel["zeroplane"][3]
+                    #     res['per_plane_frompixel_depth_10'] = mine_recalls_plane_frompixel["zeroplane"][-3]
 
                     normal_recalls_pixel = {"zeroplane": self.pixelNorm_recall_curve / len(self.RI_VI_SC) * 100}
                     normal_recalls_plane = {"zeroplane": self.planeNorm_recall_curve[:, 0] / self.planeNorm_recall_curve[:, 1] * 100}

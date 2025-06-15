@@ -256,7 +256,7 @@ def visualizationBatch(root_path, idx, info, data_dict, num_queries,
     image = data_dict['image'].copy() # [h, w, 3]
 
     if save_image:
-        img_path = os.path.join(root_path, '%s_image.png'%(idx)) # ! RGB?
+        img_path = os.path.join(root_path, '%s_%s_image.png' % (idx, info)) # ! RGB?
         cv2.imwrite(img_path, image.astype(np.uint8))
 
     if save_segmentation:

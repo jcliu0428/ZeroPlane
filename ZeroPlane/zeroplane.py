@@ -391,14 +391,22 @@ class ZeroPlane(nn.Module):
             return losses
 
         else:
-            if self.large_resolution_eval:
-                target_h, target_w = 480, 640
+            # if self.large_resolution_eval:
+            #     target_h, target_w = 480, 640
 
-            else:
-                target_h, target_w = 192, 256
+            # else:
+            #     target_h, target_w = 192, 256
 
             mask_cls_results = outputs["pred_logits"] # torch.Size([b, num_queries, num_classes + 1])
             mask_pred_results = outputs["pred_masks"] # torch.Size([b, num_queries, h/4, w/4])
+
+            pred_h, pred_w = mask_pred_results.size()[-2:]
+            target_h, target_w = pred_h * 4, pred_w * 4
+            # target_h = pred_h * 4
+            # target_w = pred_w * 4
+
+            # print(mask_pred_results.shape, images.tensor.shape)
+            # exit(1)
 
             # upsample masks
             if not mask_pred_results.shape[-1] == images.tensor.shape[-1]:
@@ -521,12 +529,11 @@ class ZeroPlane(nn.Module):
 
                 # plane inference
                 if self.semantic_on:
-                    plane_seg, inferred_planes_depth, inferred_seg_depth, inferred_planes_depth_from_seg_depth, valid_param = retry_if_cuda_oom(self.plane_inference)(mask_cls_result, mask_pred_result, param_pred_result, depth_pred_result, pixel_normal_pred_result, k_inv_dot_xy_1)
+                    plane_seg, inferred_planes_depth, inferred_seg_depth, valid_param = retry_if_cuda_oom(self.plane_inference)(mask_cls_result, mask_pred_result, param_pred_result, depth_pred_result, pixel_normal_pred_result, k_inv_dot_xy_1)
 
                     processed_results[-1]["sem_seg"] = plane_seg
                     processed_results[-1]["planes_depth"] = inferred_planes_depth
                     processed_results[-1]["seg_depth"] = inferred_seg_depth
-                    processed_results[-1]["planes_depth_from_pixel_depth"] = inferred_planes_depth_from_seg_depth
                     processed_results[-1]["valid_params"] = valid_param
                     processed_results[-1]['K_inv_dot_xy_1'] = k_inv_dot_xy_1
 
@@ -615,34 +622,12 @@ class ZeroPlane(nn.Module):
             inferred_planes_depth = inferred_planes_depth.view(h, w)
             inferred_planes_depth[non_plane_mask] = 0.0 # del non-plane regions
 
-            normal_offset_from_depth = []
-
-            for plane_idx, param in enumerate(valid_param):
-                mask = plane_seg_map == plane_idx
-                normal = param / (torch.linalg.norm(param) + 1e-8)
-
-                offset_map = normal @ k_inv_dot_xy1.to(normal.device) * inferred_seg_depth.view(-1)
-                offset = torch.mean(offset_map[mask.view(-1)])
-
-                normal_offset_from_depth.append(normal / (offset + 1e-8))
-
-            normal_offset_from_depth = torch.stack(normal_offset_from_depth)
-
-            depth_maps_inv = torch.matmul(normal_offset_from_depth, k_inv_dot_xy1.to(self.pixel_mean.device))
-            depth_maps_inv = torch.clamp(depth_maps_inv, min=1e-2, max=1e4)
-            depth_maps = 1. / depth_maps_inv  # (valid_plane_num, h*w)
-
-            normal_offset_inferred_planes_depth = depth_maps.t()[range(h*w), plane_seg_map.view(-1)] # plane depth [h,w]
-            normal_offset_inferred_planes_depth = normal_offset_inferred_planes_depth.view(h, w)
-            normal_offset_inferred_planes_depth[non_plane_mask] = 0.0 # del non-plane regions
-
         elif self.predict_global_pixel_normal:
             # get depth map
             h, w = plane_seg.shape[-2:]
 
             plane_seg_map = plane_seg[:valid_num].argmax(dim=0)
 
-            normal_offset_from_depth = []
             valid_param = []
 
             for plane_idx in range(valid_num):
@@ -656,10 +641,8 @@ class ZeroPlane(nn.Module):
                 offset_map = normal @ k_inv_dot_xy1.to(normal.device) * inferred_seg_depth.view(-1)
                 offset = torch.mean(offset_map[mask.view(-1)])
 
-                normal_offset_from_depth.append(normal / (offset + 1e-8))
                 valid_param.append(normal / (offset + 1e-8))
 
-            normal_offset_from_depth = torch.stack(normal_offset_from_depth)
             valid_param = torch.stack(valid_param)
 
             depth_maps_inv = torch.matmul(valid_param, k_inv_dot_xy1.to(self.pixel_mean.device))
@@ -670,12 +653,4 @@ class ZeroPlane(nn.Module):
             inferred_planes_depth = inferred_planes_depth.view(h, w)
             inferred_planes_depth[non_plane_mask] = 0.0 # del non-plane regions
 
-            depth_maps_inv = torch.matmul(normal_offset_from_depth, k_inv_dot_xy1.to(self.pixel_mean.device))
-            depth_maps_inv = torch.clamp(depth_maps_inv, min=1e-2, max=1e4)
-            depth_maps = 1. / depth_maps_inv  # (valid_plane_num, h*w)
-
-            normal_offset_inferred_planes_depth = depth_maps.t()[range(h*w), plane_seg_map.view(-1)] # plane depth [h,w]
-            normal_offset_inferred_planes_depth = normal_offset_inferred_planes_depth.view(h, w)
-            normal_offset_inferred_planes_depth[non_plane_mask] = 0.0 # del non-plane regions
-
-        return plane_seg, inferred_planes_depth, inferred_seg_depth, normal_offset_inferred_planes_depth, valid_param
+        return plane_seg, inferred_planes_depth, inferred_seg_depth, valid_param
