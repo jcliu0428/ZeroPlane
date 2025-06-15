@@ -46,8 +46,10 @@ For a quick demo to infer our plane reconstruction on a specified image, please 
 ```bash
 python demo/demo.py \
     --config-file configs/ZeroPlaneNYUV2/dust3r_large_dpt_bs16_50ep.yaml \
-    --input ./demo/0_d2_image.png \ # nyu-v2 test image
-    --out ./demo/nyu_demo \ # save planar depth, segmentation and mesh by default
+    --input ./demo/cvpr_demo.png \ # test image
+    --out ./demo/demo_out \ # save planar depth, segmentation and mesh by default
+    --resize_w 640 \ # image width and height before feeding into the model
+    --resize_h 480 \
     --opts \
     MODEL.WEIGHTS ./checkpoints/dust3r_encoder_released.pth # please change the checkpoint directory if you would like to try other versions
 ```
