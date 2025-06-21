@@ -60,10 +60,14 @@ python demo/demo.py \
 # Note: please modify the root_path in ZeroPlane/data/datasets/register_your_dataset.py if you would like to place the data in your specified directory.
 mkdir datasets && cd datasets
 wget https://huggingface.co/datasets/jcleo0428/ZeroPlane_dataset/resolve/main/nyuv2_plane.zip
-wget https://huggingface.co/datasets/jcleo0428/ZeroPlane_dataset/blob/main/parallel_domain_plane.zip
+wget https://huggingface.co/datasets/jcleo0428/ZeroPlane_dataset/resolve/main/parallel_domain_plane.zip
+wget https://huggingface.co/datasets/jcleo0428/ZeroPlane_dataset/resolve/main/sevenscenes_plane.zip
+wget https://huggingface.co/datasets/jcleo0428/ZeroPlane_dataset/resolve/main/apollo_stereo_plane.zip
 
 unzip nyuv2_plane.zip
 unzip parallel_domain_plane.zip
+unzip sevenscenes_plane.zip
+unzip apollo_stereo_plane.zip
 ```
 
 ## 📜 Evalution script
