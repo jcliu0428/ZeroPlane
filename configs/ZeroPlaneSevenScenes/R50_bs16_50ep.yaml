@@ -1,0 +1,55 @@
+_BASE_: Base-Segmentation.yaml
+MODEL:
+  META_ARCHITECTURE: "ZeroPlane"
+  SEM_SEG_HEAD:
+    NAME: "MaskFormerHead"
+    IGNORE_VALUE: 255
+    NUM_CLASSES: 2 # 2,0 for non-plane/non-label, 1 for plane
+    LOSS_WEIGHT: 1.0
+    CONVS_DIM: 256
+    MASK_DIM: 256
+    DEPTH_DIM: 256
+    NORM: "GN"
+    # pixel decoder
+    PIXEL_DECODER_NAME: "MSDeformAttnPixelDecoder"
+    IN_FEATURES: ["res2", "res3", "res4", "res5"]
+    DEFORMABLE_TRANSFORMER_ENCODER_IN_FEATURES: ["res3", "res4", "res5"]
+    COMMON_STRIDE: 4
+    TRANSFORMER_ENC_LAYERS: 6
+  MASK_FORMER:
+    TRANSFORMER_DECODER_NAME: "MultiScaleMaskedTransformerDecoder"
+    TRANSFORMER_IN_FEATURE: "multi_scale_pixel_decoder"
+    DEEP_SUPERVISION: True  # = aux_loss
+    NO_OBJECT_WEIGHT: 0.1
+    CLASS_WEIGHT: 2.0
+    MASK_WEIGHT: 5.0
+    DICE_WEIGHT: 5.0
+    PARAM_L1_WEIGHT: 1.0
+    PARAM_COS_WEIGHT: 5.0
+    Q_WEIGHT: 2.0
+    CENTER_WEIGHT: 1.0
+    PLANE_DEPTHS_WEIGHT: 2.0
+    WHOLE_DEPTH_WEIGHT: 2.0
+    HIDDEN_DIM: 256
+    NUM_OBJECT_QUERIES: 20 
+    NHEADS: 8 #!
+    # NHEADS: 4
+    DROPOUT: 0.0
+    DIM_FEEDFORWARD: 2048
+    ENC_LAYERS: 0
+    PRE_NORM: False
+    ENFORCE_INPUT_PROJ: False
+    SIZE_DIVISIBILITY: 32
+    DEC_LAYERS: 10  # 9 decoder layers, add one for the loss on learnable query
+    TRAIN_NUM_POINTS: 3072 # 192/4 * (256/4) = 48 * 64 = 3072
+    OVERSAMPLE_RATIO: 3.0
+    IMPORTANCE_SAMPLE_RATIO: 0.75
+    PREDICT_CENTER: False
+    PREDICT_PARAM: False
+    PREDICT_DEPTH: False
+    TEST:
+      SEMANTIC_ON: True
+      INSTANCE_ON: True
+      PLANE_MASK_THRESHOLD: 0.005
+
+  # DEVICE: "cpu"

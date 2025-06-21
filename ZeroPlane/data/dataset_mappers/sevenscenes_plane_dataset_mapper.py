@@ -69,13 +69,8 @@ class SingleSevenScenesPlaneDatasetMapper():
         *,
         tfm_gens,
         image_format,
-        predict_center,
-        use_partial_cluster,
-        use_indoor_anchor,
-        mix_anchor,
         normal_class_num,
         offset_class_num,
-        classify_inverse_offset,
         backbone,
         large_resolution_input=False,
         large_resolution_eval=False,
@@ -98,47 +93,11 @@ class SingleSevenScenesPlaneDatasetMapper():
 
         self.img_format = image_format
         self.is_train = is_train
-        self.predict_center = predict_center
 
         self.backbone = backbone
 
-        self.mix_anchor = mix_anchor
-
-        self.classify_inverse_offset = classify_inverse_offset
-
-        self.indoor_anchor_normals = np.load('./cluster_anchor/new_indoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-        self.outdoor_anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-
-        if self.classify_inverse_offset:
-            raise NotImplementedError
-
-        else:
-            self.indoor_anchor_offsets = np.load('./cluster_anchor/new_indoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-            self.outdoor_anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-
-        self.use_indoor_anchor = use_indoor_anchor
-
-        # else:
-        if self.mix_anchor:
-            if use_partial_cluster:
-                self.anchor_normals = np.load('./cluster_anchor/partial_new_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-                self.anchor_offsets = np.load('./cluster_anchor/partial_new_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-
-            else:
-                self.anchor_normals = np.load('./cluster_anchor/new_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-                self.anchor_offsets = np.load('./cluster_anchor/new_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-
-        elif self.use_indoor_anchor:
-            self.anchor_normals = np.load('./cluster_anchor/new_indoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-            self.anchor_offsets = np.load('./cluster_anchor/new_indoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-
-        else:
-            self.anchor_normals = np.load('./cluster_anchor/scannet_normal_anchors_{}.npy'.format(normal_class_num))
-            self.anchor_offsets = np.load('./cluster_anchor/scannet_offset_anchors_{}.npy'.format(offset_class_num))
-
-            print('Warning: Use ScanNet anchors to test on SevenScenes dataset!')
-
-        self.canonical_focal = 250.0
+        self.anchor_normals = np.load('./cluster_anchor/new_mixed_normal_anchors_{}.npy'.format(normal_class_num))
+        self.anchor_offsets = np.load('./cluster_anchor/new_mixed_offset_anchors_{}.npy'.format(offset_class_num))
 
         self.large_resolution_input = large_resolution_input
         self.large_resolution_eval = large_resolution_eval
@@ -155,13 +114,8 @@ class SingleSevenScenesPlaneDatasetMapper():
             "is_train": is_train,
             "tfm_gens": tfm_gens,
             "image_format": cfg.INPUT.FORMAT, # RGB
-            "predict_center": cfg.MODEL.MASK_FORMER.PREDICT_CENTER,
-            'use_partial_cluster': cfg.MODEL.MASK_FORMER.USE_PARTIAL_CLUSTER,
-            'use_indoor_anchor': cfg.MODEL.MASK_FORMER.USE_INDOOR_ANCHOR,
-            'mix_anchor': cfg.MODEL.MASK_FORMER.MIX_ANCHOR,
             'normal_class_num': cfg.MODEL.MASK_FORMER.NORMAL_CLS_NUM,
             'offset_class_num': cfg.MODEL.MASK_FORMER.OFFSET_CLS_NUM,
-            'classify_inverse_offset': cfg.MODEL.MASK_FORMER.CLASSIFY_INVERSE_OFFSET,
             'backbone': cfg.MODEL.BACKBONE.NAME,
             'large_resolution_input': cfg.INPUT.LARGE_RESOLUTION_INPUT,
             'large_resolution_eval': cfg.INPUT.LARGE_RESOLUTION_EVAL,
@@ -197,12 +151,6 @@ class SingleSevenScenesPlaneDatasetMapper():
             intrinsic[0] = intrinsic[0] * 256 / 640
             intrinsic[1] = intrinsic[1] * 192 / 480
 
-        # focal = intrinsic[0][0]
-        # focal_factor = self.canonical_focal / focal
-        # dataset_dict['focal_factor'] = torch.as_tensor(focal_factor)
-
-        dataset_dict['dataset_class'] = torch.as_tensor(1)
-
         image, transforms = T.apply_transform_gens(self.tfm_gens, image)
         image_shape = image.shape[:2]  # h, w
 
@@ -210,12 +158,6 @@ class SingleSevenScenesPlaneDatasetMapper():
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
         dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
-
-        dataset_dict['anchor_normals_indoor'] = torch.as_tensor(self.indoor_anchor_normals)
-        dataset_dict['anchor_offsets_indoor'] = torch.as_tensor(self.indoor_anchor_offsets)
-
-        dataset_dict['anchor_normals_outdoor'] = torch.as_tensor(self.outdoor_anchor_normals)
-        dataset_dict['anchor_offsets_outdoor'] = torch.as_tensor(self.outdoor_anchor_offsets)
 
         # else:
         dataset_dict['anchor_normals'] = torch.as_tensor(self.anchor_normals)
@@ -267,9 +209,6 @@ class SingleSevenScenesPlaneDatasetMapper():
                     masks.append(mask)
                     plane_depths.append(mask*plane_depth_gt)
 
-                    if "center" in segment_info and self.predict_center:
-                        centers.append(segment_info["center"])
-
             assert len(params) == len(masks)
 
             instances.gt_classes = torch.tensor(classes, dtype=torch.int64)
@@ -279,8 +218,6 @@ class SingleSevenScenesPlaneDatasetMapper():
                 instances.gt_boxes = Boxes(torch.zeros((0, 4)))
                 instances.gt_params = torch.zeros((0, 3))
                 instances.gt_plane_depths = torch.zeros((0, pan_seg_gt.shape[-2], pan_seg_gt.shape[-1]))
-                if "center" in segment_info and self.predict_center:
-                    instances.gt_centers = torch.zeros((0, 2))
 
                 pixel_normal_map = np.zeros((3, pan_seg_gt.shape[-2], pan_seg_gt.shape[-1])).astype(np.float32)
                 pixel_offset_map = np.zeros((pan_seg_gt.shape[-2], pan_seg_gt.shape[-1])).astype(np.float32)
@@ -296,8 +233,6 @@ class SingleSevenScenesPlaneDatasetMapper():
                 plane_depths = torch.stack([torch.from_numpy(x.copy()) for x in plane_depths], dim = 0)
                 instances.gt_plane_depths = plane_depths
                 instances.gt_params = torch.from_numpy(params)
-                if "center" in segment_info and self.predict_center:
-                    instances.gt_centers = torch.from_numpy(np.array(centers).astype(np.float32))
 
             dataset_dict["instances"] = instances
 

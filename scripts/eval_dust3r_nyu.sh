@@ -5,7 +5,7 @@ python train_net.py \
     --num-gpus 1 \
     --config-file configs/ZeroPlaneNYUV2/dust3r_large_dpt_bs16_50ep.yaml \
     MODEL.WEIGHTS ./checkpoints/dust3r_encoder_released.pth \
-    OUTPUT_DIR ./nyuv2_test_vis \
+    OUTPUT_DIR ./visualizations/nyuv2_test_vis \
     MODEL.MASK_FORMER.LEARN_NORMAL_CLS "True" \
     MODEL.MASK_FORMER.LEARN_OFFSET_CLS "True" \
     MODEL.MASK_FORMER.MIX_ANCHOR "True" \
