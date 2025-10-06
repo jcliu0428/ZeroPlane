@@ -84,12 +84,47 @@ python train_net.py \
     TEST.NO_VIS "True" # whether to save visualizations to OUTPUT_DIR
 ```
 
+## ✨ Training script
+```bash
+# training with dinov2 encoder
+export CUDA_VISIBLE_DEVICES=0,1
+python train_net.py \
+    --num-gpus 2 \
+    --config-file configs/ZeroPlaneMixed/dinov2/dinov2_base_bs16_50ep.yaml \ # dinov2 training
+    --dist-url 'tcp://127.0.0.1:64750' \ # tcp
+    OUTPUT_DIR checkpoints/dinov2_base_train_low_res \ # output dir
+    INPUT.LARGE_RESOLUTION_INPUT "False" \ # whether to use large-res training
+    INPUT.DINO_INPUT_HEIGHT 196 \ # input height
+    INPUT.DINO_INPUT_WIDTH 252 \ # input width
+    SOLVER.IMS_PER_BATCH 16 \ # total batch size
+    SOLVER.MAX_ITER 50000 \ # total iterations
+    SOLVER.STEPS '(40000, 47000)' \ # scheduler
+    SOLVER.CHECKPOINT_PERIOD 5000 \ # ckpt saving freq
+    TEST.EVAL_PERIOD 50001 \
+
+# training with dust3r encoder
+export CUDA_VISIBLE_DEVICES=0,1
+python train_net.py \
+    --num-gpus 2 \
+    --config-file configs/ZeroPlaneMixed/dust3r_large_dpt_bs16_50ep.yaml \ # dust3r training
+    --dist-url 'tcp://127.0.0.1:64750' \ # tcp
+    OUTPUT_DIR checkpoints/dust3r_train_low_res \ # output dir
+    INPUT.LARGE_RESOLUTION_INPUT "False" \ # whether to use large-res training
+    INPUT.DINO_INPUT_HEIGHT 196 \ # input height
+    INPUT.DINO_INPUT_WIDTH 252 \ # input width
+    SOLVER.IMS_PER_BATCH 16 \ # total batch size
+    SOLVER.MAX_ITER 50000 \ # total iterations
+    SOLVER.STEPS '(40000, 47000)' \ # scheduler
+    SOLVER.CHECKPOINT_PERIOD 5000 \ # ckpt saving freq
+    TEST.EVAL_PERIOD 50001 \
+```
 
 ## 🚀 Release Plan
 * [x] Github created **[2025.03.24]**
 * [x] Demo & evaluation code and pretrained model release. **[2025.06.12]**
-* [ ] Training and evaluation dataset.
-* [ ] Training code release. 
+* [x] Evaluation dataset release.
+* [ ] Training dataset release.
+* [x] Training code release. 
 * [ ] Gradio demo.
 
 
