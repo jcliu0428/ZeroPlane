@@ -44,7 +44,7 @@ def get_metadata(num=167771):
     return meta
 
 
-def load_single_mixed_plane_json(json_file):
+def load_single_mixed_plane_json(root, json_file):
     """
     Args:
         json_file (str): path to the json file. e.g., "~/coco/annotations/panoptic_train2017.json".
@@ -59,7 +59,8 @@ def load_single_mixed_plane_json(json_file):
     ret = []
     for ann in json_info["annotations"]:
         image_id = ann["image_id"]
-        npz_file = ann["npz_file_name"]
+        npz_file = pjoin(os.path.dirname(root), '/'.join(ann['npz_file_name'].split('/')[1:]))
+        # npz_file = ann["npz_file_name"]
         segments_info = ann["segments_info"]
         ret.append(
             {
@@ -74,13 +75,13 @@ def load_single_mixed_plane_json(json_file):
     return ret
 
 
-def register_single_mixed_plane_annos_seg(name,  metadata, plane_seg_json):
+def register_single_mixed_plane_annos_seg(root, name,  metadata, plane_seg_json):
 
     plane_seg_name = "single_" + name
 
     DatasetCatalog.register(
         plane_seg_name,
-        lambda: load_single_mixed_plane_json(plane_seg_json),
+        lambda: load_single_mixed_plane_json(root, plane_seg_json),
     )
 
     MetadataCatalog.get(plane_seg_name).set(
@@ -109,6 +110,7 @@ def register_all_single_mixed_plane_annos_seg(json_root):
                 plane_seg_json = pjoin(osp.dirname(json_root), "parallel_domain_plane/parallel_domain_plane_len" + str(VAL_NUM) + "_" + split + ".json")
 
         register_single_mixed_plane_annos_seg(
+            json_root,
             name,
             get_metadata(num=MAX_NUM_PLANES), #! num_queries
             plane_seg_json,

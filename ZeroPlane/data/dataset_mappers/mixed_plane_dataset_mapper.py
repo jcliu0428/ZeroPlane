@@ -29,12 +29,61 @@ from detectron2.data.transforms import TransformGen
 from ...utils.disp import visualizationBatch
 from ...utils.plane_utils import make_pixel_normal_map
 
-from .scannetv1_plane_dataset_mapper import NewFixedSizeCrop
+# from .scannetv1_plane_dataset_mapper import NewFixedSizeCrop
 
 
 __all__ = ['SingleMixedPlaneDatasetMapper']
 
 from PIL import ImageEnhance
+
+class NewFixedSizeCrop(Augmentation):
+
+    def __init__(self, crop_size: Tuple[int], pad: bool = True, pad_value: float = 128.0, seg_pad_value: float = 0.0):
+        """
+        Args:
+            crop_size: target image (height, width).
+            pad: if True, will pad images smaller than `crop_size` up to `crop_size`
+            pad_value: the padding value.
+            seg_pad_value #!add seg_pad_value
+        """
+        super().__init__()
+        self._init(locals())
+
+    def _get_crop(self, image: np.ndarray) -> Transform:
+        # Compute the image scale and scaled size.
+        input_size = image.shape[:2]
+        output_size = self.crop_size
+
+        max_offset = np.subtract(input_size, output_size)
+        max_offset = np.maximum(max_offset, 0)
+        # offset = np.multiply(max_offset, np.random.uniform(0.0, 1.0)) #! del random crop
+        offset = max_offset/2
+        offset = np.round(offset).astype(int)
+        return CropTransform(
+            offset[1], offset[0], output_size[1], output_size[0], input_size[1], input_size[0]
+        )
+
+    def _get_pad(self, image: np.ndarray) -> Transform:
+        # Compute the image scale and scaled size.
+        input_size = image.shape[:2]
+        output_size = self.crop_size
+
+        # Add padding if the image is scaled down.
+        pad_size = np.subtract(output_size, input_size)
+        pad_size = np.maximum(pad_size, 0)
+        offset0 = np.round(pad_size / 2).astype(int)
+        offset1 = pad_size - offset0
+        original_size = np.minimum(input_size, output_size)
+        return PadTransform(
+            offset0[1], offset0[0], offset1[1], offset1[0], original_size[1], original_size[0], self.pad_value, self.seg_pad_value
+        ) #! add seg_pad_value
+
+    def get_transform(self, image: np.ndarray) -> TransformList:
+        transforms = [self._get_crop(image)]
+        if self.pad:
+            transforms.append(self._get_pad(image))
+        return TransformList(transforms)
+
 
 
 def random_brightness(image, min_factor = 0.7, max_factor = 1.2):
@@ -253,16 +302,10 @@ class SingleMixedPlaneDatasetMapper():
         predict_center,
         num_queries,
         common_stride,
-        use_partial_cluster,
-        use_indoor_anchor,
-        use_outdoor_anchor,
-        mix_anchor,
         normal_class_num,
         offset_class_num,
         use_coupled_anchor,
-        classify_inverse_offset,
         backbone,
-        with_nonplanar_query,
         large_resolution_input=False,
         large_resolution_eval=False,
         dino_input_h=196,
@@ -291,66 +334,17 @@ class SingleMixedPlaneDatasetMapper():
         self.num_queries = num_queries
 
         self.backbone = backbone
-        self.with_nonplanar_query = with_nonplanar_query
 
         self.common_stride = common_stride
-        self.classify_inverse_offset = classify_inverse_offset
-
-        if not osp.exists('./cluster_anchor/new_indoor_mixed_normal_anchors_{}.npy'.format(normal_class_num)):
-            self.indoor_anchor_normals = np.load('./cluster_anchor/new_indoor_mixed_normal_anchors_7.npy')
-            self.outdoor_anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_7.npy')
-
-        else:
-            self.indoor_anchor_normals = np.load('./cluster_anchor/new_indoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-            self.outdoor_anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-
-        if self.classify_inverse_offset:
-            raise NotImplementedError
-
-        else:
-            if not osp.exists('./cluster_anchor/new_indoor_mixed_offset_anchors_{}.npy'.format(offset_class_num)):
-                self.indoor_anchor_offsets = np.load('./cluster_anchor/new_indoor_mixed_offset_anchors_20.npy')
-                self.outdoor_anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_20.npy')
-
-            else:
-                self.indoor_anchor_offsets = np.load('./cluster_anchor/new_indoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-                self.outdoor_anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-
-        self.use_indoor_anchor = use_indoor_anchor
-        self.use_outdoor_anchor = use_outdoor_anchor
-
-        assert not (self.use_indoor_anchor and self.use_outdoor_anchor)
-
-        self.mix_anchor = mix_anchor
-
-        assert not (self.mix_anchor and self.use_indoor_anchor)
-        assert not (self.mix_anchor and self.use_outdoor_anchor)
 
         self.use_coupled_anchor = use_coupled_anchor
 
-        if use_partial_cluster:
-            self.anchor_normals = np.load('./cluster_anchor/partial_new_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-            self.anchor_offsets = np.load('./cluster_anchor/partial_new_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-
-        elif use_indoor_anchor:
-            self.anchor_normals = np.load('./cluster_anchor/new_indoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-            self.anchor_offsets = np.load('./cluster_anchor/new_indoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-
-        elif use_outdoor_anchor:
-            self.anchor_normals = np.load('./cluster_anchor/new_outdoor_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-            self.anchor_offsets = np.load('./cluster_anchor/new_outdoor_mixed_offset_anchors_{}.npy'.format(offset_class_num))
+        if self.use_coupled_anchor:
+            self.anchor_normal_divide_offset = np.load('./cluster_anchor/new_mixed_normal_divide_offset_anchors_7.npy')
 
         else:
-            # assert self.mix_anchor
-
-            if self.use_coupled_anchor:
-                self.anchor_normal_divide_offset = np.load('./cluster_anchor/new_mixed_normal_divide_offset_anchors_7.npy')
-
-            else:
-                self.anchor_normals = np.load('./cluster_anchor/new_mixed_normal_anchors_{}.npy'.format(normal_class_num))
-                self.anchor_offsets = np.load('./cluster_anchor/new_mixed_offset_anchors_{}.npy'.format(offset_class_num))
-
-        self.canonical_focal = 250.0
+            self.anchor_normals = np.load('./cluster_anchor/new_mixed_normal_anchors_{}.npy'.format(normal_class_num))
+            self.anchor_offsets = np.load('./cluster_anchor/new_mixed_offset_anchors_{}.npy'.format(offset_class_num))
 
         self.large_resolution_input = large_resolution_input
         self.large_resolution_eval = large_resolution_eval
@@ -377,16 +371,10 @@ class SingleMixedPlaneDatasetMapper():
             "predict_center": cfg.MODEL.MASK_FORMER.PREDICT_CENTER,
             "num_queries": cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES,
             "common_stride": cfg.MODEL.SEM_SEG_HEAD.COMMON_STRIDE,
-            'use_partial_cluster': cfg.MODEL.MASK_FORMER.USE_PARTIAL_CLUSTER,
-            'use_indoor_anchor': cfg.MODEL.MASK_FORMER.USE_INDOOR_ANCHOR,
-            'use_outdoor_anchor': cfg.MODEL.MASK_FORMER.USE_OUTDOOR_ANCHOR,
-            'mix_anchor': cfg.MODEL.MASK_FORMER.MIX_ANCHOR,
             'normal_class_num': cfg.MODEL.MASK_FORMER.NORMAL_CLS_NUM,
             'offset_class_num': cfg.MODEL.MASK_FORMER.OFFSET_CLS_NUM,
             'use_coupled_anchor': cfg.MODEL.MASK_FORMER.USE_COUPLED_ANCHOR,
-            'classify_inverse_offset': cfg.MODEL.MASK_FORMER.CLASSIFY_INVERSE_OFFSET,
             'backbone': cfg.MODEL.BACKBONE.NAME,
-            'with_nonplanar_query': cfg.MODEL.MASK_FORMER.WITH_NONPLANAR_QUERY,
             'large_resolution_input': cfg.INPUT.LARGE_RESOLUTION_INPUT,
             'large_resolution_eval': cfg.INPUT.LARGE_RESOLUTION_EVAL,
             'dino_input_h': cfg.INPUT.DINO_INPUT_HEIGHT,
@@ -426,15 +414,7 @@ class SingleMixedPlaneDatasetMapper():
 
         dataset_name = dataset_dict['npz_file_name'].split('/')[1]
 
-        if dataset_name in ['scannetv1_plane', 'mp3d_plane', 'origin_nyuv2_plane', 'scannet_planercnn_plane', 'new_nyuv2_plane', 'diode_plane', 'taskonomy_plane', 'sevenscenes_plane', 'replica_hm3d_plane']:
-            dataset_cls = 1
-
-        else:
-            dataset_cls = 0
-
-        dataset_dict['dataset_class'] = torch.as_tensor(dataset_cls)
         origin_h, origin_w = image.shape[:2]
-
         utils.check_image_size(dataset_dict, image)
 
         image, transforms = T.apply_transform_gens(self.tfm_gens, image)
@@ -446,46 +426,16 @@ class SingleMixedPlaneDatasetMapper():
         # Therefore it's important to use torch.Tensor.
         dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
 
-        dataset_dict['anchor_normals_indoor'] = torch.as_tensor(self.indoor_anchor_normals)
-        dataset_dict['anchor_offsets_indoor'] = torch.as_tensor(self.indoor_anchor_offsets)
-
-        dataset_dict['anchor_normals_outdoor'] = torch.as_tensor(self.outdoor_anchor_normals)
-        dataset_dict['anchor_offsets_outdoor'] = torch.as_tensor(self.outdoor_anchor_offsets)
-
-        if self.mix_anchor:
-            if self.use_coupled_anchor:
-                dataset_dict['anchor_normal_divide_offset'] = torch.as_tensor(self.anchor_normal_divide_offset)
-
-            else:
-                dataset_dict['anchor_normals'] = torch.as_tensor(self.anchor_normals)
-                dataset_dict['anchor_offsets'] = torch.as_tensor(self.anchor_offsets)
+        if self.use_coupled_anchor:
+            dataset_dict['anchor_normal_divide_offset'] = torch.as_tensor(self.anchor_normal_divide_offset)
 
         else:
-            if self.use_indoor_anchor:
-                dataset_dict['anchor_normals'] = torch.as_tensor(self.indoor_anchor_normals)
-                dataset_dict['anchor_offsets'] = torch.as_tensor(self.indoor_anchor_offsets)
-
-            elif self.use_outdoor_anchor:
-                dataset_dict['anchor_normals'] = torch.as_tensor(self.outdoor_anchor_normals)
-                dataset_dict['anchor_offsets'] = torch.as_tensor(self.outdoor_anchor_offsets)
-
-            # assume we known each data is indoor or outdoor during testing
-            else:
-                dataset_dict['anchor_normals'] = torch.as_tensor(self.indoor_anchor_normals) if dataset_cls == 1 \
-                    else torch.as_tensor(self.outdoor_anchor_normals)
-                dataset_dict['anchor_offsets'] = torch.as_tensor(self.indoor_anchor_offsets) if dataset_cls == 1 \
-                    else torch.as_tensor(self.outdoor_anchor_offsets)
+            dataset_dict['anchor_normals'] = torch.as_tensor(self.anchor_normals)
+            dataset_dict['anchor_offsets'] = torch.as_tensor(self.anchor_offsets)
 
         if not self.is_train:
             if self.backbone == 'DPT_DINOv2':
                 image = cv2.resize(image, (self.dino_input_w, self.dino_input_h))
-
-                # no transforms during testing, so we need to manually resize the input image to match the shape
-                # if self.large_resolution_model:
-                #     image = cv2.resize(image, (518, 518))
-
-                # else:
-                #     image = cv2.resize(image, (252, 196))
 
                 dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
 
@@ -552,12 +502,6 @@ class SingleMixedPlaneDatasetMapper():
             dataset_dict['gt_global_pixel_depth'] = torch.as_tensor(tfm_raw_depth_gt)
 
             if self.backbone == 'DPT_DINOv2':
-                # if self.large_resolution_input:
-                #     dsize = (148, 148)
-
-                # else:
-                #     dsize = (72, 56)
-
                 if self.unchanged_aspect_ratio_then_crop:
                     dsize = (148, 148)
 
@@ -606,30 +550,8 @@ class SingleMixedPlaneDatasetMapper():
 
             params = params[tfm_labels]
 
-            if self.with_nonplanar_query:
-                classes.append(0)
-
-                if len(masks) == 0:
-                    mask = np.ones_like(tfm_plane_depth_gt.squeeze(0)) > 0
-
-                else:
-                    mask = (1 - (np.asarray(masks).sum(axis=0) > 0)) > 0
-
-                masks.append(mask)
-
-                tfm_plane_depths.append(mask * tfm_plane_depth_gt)
-
-                if len(params) == 0:
-                    params = np.zeros((1, 3)).astype(params.dtype)
-
-                else:
-                    params = np.concatenate([params, np.zeros_like(params[0])[None]])
-
-                if self.predict_center:
-                    centers.append(np.zeros_like(centers[0]))
-
             if not len(params) == len(masks):
-                print(len(params), len(masks), dataset_dict['npz_file_name'])
+                print('error data:', len(params), len(masks), dataset_dict['npz_file_name'])
                 exit(1)
 
             instances.gt_classes = torch.tensor(classes, dtype=torch.int64)
@@ -693,6 +615,7 @@ class SingleMixedPlaneDatasetMapper():
             dataset_dict['gt_resize14_global_pixel_offset'] = torch.as_tensor(cv2.resize(pixel_offset_map, dsize, interpolation=cv2.INTER_NEAREST))
 
         return dataset_dict
+
 
 if __name__ == "__main__":
     pass

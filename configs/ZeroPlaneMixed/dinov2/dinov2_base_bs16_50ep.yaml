@@ -1,4 +1,4 @@
-_BASE_: ./R50_bs16_50ep.yaml
+_BASE_: ../R50_bs16_50ep.yaml
 MODEL:
   BACKBONE:
     NAME: "DPT_DINOv2"

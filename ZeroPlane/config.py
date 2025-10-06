@@ -105,7 +105,7 @@ def add_ZeroPlane_config(cfg):
     # pixel decoder config
     cfg.MODEL.SEM_SEG_HEAD.MASK_DIM = 64
     # pixel depth decoder config
-    cfg.MODEL.SEM_SEG_HEAD.DEPTH_DIM = 65
+    cfg.MODEL.SEM_SEG_HEAD.DEPTH_DIM = 64
     # pixel normal decoder config
     cfg.MODEL.SEM_SEG_HEAD.PIXEL_NORMAL_DIM = 256
     # offset decoder config
@@ -311,7 +311,7 @@ def add_ZeroPlane_config(cfg):
 
     cfg.MODEL.MASK_FORMER.WITH_MASK_UNCERT = False
 
-    cfg.MODEL.MASK_FORMER.WO_Q_LOSS = False
+    cfg.MODEL.MASK_FORMER.WO_Q_LOSS = True
 
     cfg.MODEL.MASK_FORMER.WITH_MASK_AGGREGATED_NORMAL_LOSS = False
 
